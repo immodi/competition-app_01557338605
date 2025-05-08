@@ -12,7 +12,7 @@ import (
 
 func main() {
 	// Connect to database
-	db, err := db.NewDatabase("file:api.db?cache=shared&mode=rwc")
+	db, err := db.NewDatabase("file:db/api.db?cache=shared&mode=rwc")
 	if err != nil {
 		log.Fatalf("Failed to connect to database: %v", err)
 	}

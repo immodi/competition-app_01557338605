@@ -22,12 +22,17 @@ type UserResponse struct {
 	CreatedAt string `json:"createdAt"`
 }
 
+type UserDeletionResponse struct {
+	Message string `json:"message"`
+}
+
 func UsersRouter(r chi.Router, db *sql.DB) {
 	userRepository := repos.NewUserRepository(db)
 
 	r.Get("/", getAllUsers(userRepository))
 	r.Post("/", createUser(userRepository))
 	r.Get("/{id}", getUser(userRepository))
+	r.Delete("/{id}", deleteUser(userRepository))
 
 }
 
@@ -102,5 +107,28 @@ func getUser(userRepo *repos.UserRepository) http.HandlerFunc {
 			CreatedAt: user.CreatedAt,
 		}
 		helpers.HttpJson(w, http.StatusOK, response)
+	}
+}
+
+func deleteUser(userRepo *repos.UserRepository) http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		idStr := chi.URLParam(r, "id")
+		id, err := strconv.ParseInt(idStr, 10, 64)
+		if err != nil {
+			helpers.HttpError(w, http.StatusBadRequest, "Invalid user ID, pass a valid one")
+			return
+		}
+
+		err = userRepo.DeleteUser(id)
+		if err != nil {
+			helpers.HttpError(w, http.StatusInternalServerError, "Could not delete the user")
+			return
+		}
+
+		res := &UserDeletionResponse{
+			Message: "User deleted successfully",
+		}
+
+		helpers.HttpJson(w, http.StatusOK, res)
 	}
 }
