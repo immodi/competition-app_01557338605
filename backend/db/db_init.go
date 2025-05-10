@@ -3,6 +3,7 @@ package db
 import (
 	"database/sql"
 	"fmt"
+	"immodi/submission-backend/helpers"
 	"log"
 
 	_ "modernc.org/sqlite"
@@ -28,6 +29,8 @@ func NewDatabase(dbPath string) (*Database, error) {
 		return nil, err
 	}
 
+	AddDefaultAdmin(db)
+
 	log.Printf("Connected to database: %s", dbPath)
 	return &Database{DB: db}, nil
 }
@@ -43,8 +46,10 @@ func initSchema(db *sql.DB) error {
 			id INTEGER PRIMARY KEY AUTOINCREMENT,
 			username TEXT UNIQUE NOT NULL,
 			password_hash TEXT NOT NULL,
+			role TEXT NOT NULL DEFAULT 'user',
 			created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 		);`,
+
 		`CREATE TABLE IF NOT EXISTS events (
 			id INTEGER PRIMARY KEY AUTOINCREMENT,
 			name TEXT NOT NULL,
@@ -62,8 +67,27 @@ func initSchema(db *sql.DB) error {
 			return fmt.Errorf("schema creation failed: %w", err)
 		}
 	}
+
 	log.Println("Database schema initialized")
 	return nil
+}
+
+func AddDefaultAdmin(db *sql.DB) {
+	password := "admin"
+	hashedPassword, err := helpers.HashPassword(password)
+	if err != nil {
+		log.Fatal("couldnt hash default admin password:", err)
+	}
+
+	insertAdmin := `
+		INSERT OR IGNORE INTO users (username, password_hash, role)
+		VALUES ('admin', ?, 'admin');
+	`
+
+	_, err = db.Exec(insertAdmin, hashedPassword)
+	if err != nil {
+		log.Fatal("Failed to insert default admin user:", err)
+	}
 }
 
 func (db *Database) Close() error {

@@ -10,6 +10,7 @@ type User struct {
 	ID        int64  `json:"id"`
 	Username  string `json:"username"`
 	CreatedAt string `json:"createdAt"`
+	Role      string `json:"role"`
 }
 
 type UserRepository struct {
@@ -21,7 +22,7 @@ func NewUserRepository(db *sql.DB) *UserRepository {
 }
 
 func (r *UserRepository) GetAllUsers() ([]User, error) {
-	rows, err := r.db.Query("SELECT id, username, created_at FROM users")
+	rows, err := r.db.Query("SELECT id, username, role, created_at FROM users")
 	if err != nil {
 		return nil, fmt.Errorf("failed to retrieve users: %w", err)
 	}
@@ -30,7 +31,7 @@ func (r *UserRepository) GetAllUsers() ([]User, error) {
 	var users []User
 	for rows.Next() {
 		var u User
-		if err := rows.Scan(&u.ID, &u.Username, &u.CreatedAt); err != nil {
+		if err := rows.Scan(&u.ID, &u.Username, &u.Role, &u.CreatedAt); err != nil {
 			return nil, fmt.Errorf("error scanning user row: %w", err)
 		}
 		users = append(users, u)
@@ -39,7 +40,6 @@ func (r *UserRepository) GetAllUsers() ([]User, error) {
 	return users, rows.Err()
 }
 
-// Adds a user and returns the new user's ID.
 func (r *UserRepository) CreateUser(username, password string) (int64, error) {
 	// Check for existing user
 	if existing, _ := r.GetUserByUsername(username); existing != nil {
@@ -65,9 +65,9 @@ func (r *UserRepository) CreateUser(username, password string) (int64, error) {
 func (r *UserRepository) GetUserByUsername(username string) (*User, error) {
 	var u User
 	err := r.db.QueryRow(
-		"SELECT id, username, created_at FROM users WHERE username = ?",
+		"SELECT id, username, role, created_at FROM users WHERE username = ?",
 		username,
-	).Scan(&u.ID, &u.Username, &u.CreatedAt)
+	).Scan(&u.ID, &u.Username, &u.Role, &u.CreatedAt)
 
 	if err != nil {
 		if err == sql.ErrNoRows {
@@ -82,9 +82,9 @@ func (r *UserRepository) GetUserByUsername(username string) (*User, error) {
 func (r *UserRepository) GetUserById(id int64) (*User, error) {
 	var u User
 	err := r.db.QueryRow(
-		"SELECT id, username, created_at FROM users WHERE id = ?",
+		"SELECT id, username, role, created_at FROM users WHERE id = ?",
 		id,
-	).Scan(&u.ID, &u.Username, &u.CreatedAt)
+	).Scan(&u.ID, &u.Username, &u.Role, &u.CreatedAt)
 
 	if err != nil {
 		if err == sql.ErrNoRows {
@@ -110,5 +110,16 @@ func (r *UserRepository) DeleteUser(id int64) error {
 		return fmt.Errorf("no user found with id %d", id)
 	}
 
+	return nil
+}
+
+func (r *UserRepository) UpdateUserRole(id int64, role string) error {
+	_, err := r.db.Exec(
+		"UPDATE users SET role = ? WHERE id = ?",
+		role, id,
+	)
+	if err != nil {
+		return fmt.Errorf("failed to update user id %d: %w", id, err)
+	}
 	return nil
 }

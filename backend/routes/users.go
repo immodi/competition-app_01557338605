@@ -5,35 +5,22 @@ import (
 	"encoding/json"
 	"immodi/submission-backend/helpers"
 	"immodi/submission-backend/repos"
+	"immodi/submission-backend/routes/requests"
+	"immodi/submission-backend/routes/responses"
 	"net/http"
 	"strconv"
 
 	"github.com/go-chi/chi/v5"
 )
 
-type UserRequest struct {
-	Username string `json:"username"`
-	Password string `json:"password"`
-}
-
-type UserResponse struct {
-	UserId    int64  `json:"userId"`
-	Username  string `json:"username"`
-	CreatedAt string `json:"createdAt"`
-}
-
-type UserDeletionResponse struct {
-	Message string `json:"message"`
-}
-
 func UsersRouter(r chi.Router, db *sql.DB) {
 	userRepository := repos.NewUserRepository(db)
 
 	r.Get("/", getAllUsers(userRepository))
 	r.Post("/", createUser(userRepository))
+	r.Put("/", updateUserRole(userRepository))
 	r.Get("/{id}", getUser(userRepository))
 	r.Delete("/{id}", deleteUser(userRepository))
-
 }
 
 func getAllUsers(userRepo *repos.UserRepository) http.HandlerFunc {
@@ -50,7 +37,7 @@ func getAllUsers(userRepo *repos.UserRepository) http.HandlerFunc {
 
 func createUser(userRepo *repos.UserRepository) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
-		var req UserRequest
+		var req requests.UserCreateRequest
 		if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
 			helpers.HttpError(w, http.StatusBadRequest, "Invalid request")
 			return
@@ -72,8 +59,9 @@ func createUser(userRepo *repos.UserRepository) http.HandlerFunc {
 			return
 		}
 
-		res := &UserResponse{
+		res := &responses.UserResponse{
 			UserId:    user.ID,
+			Role:      user.Role,
 			Username:  user.Username,
 			CreatedAt: user.CreatedAt,
 		}
@@ -101,8 +89,9 @@ func getUser(userRepo *repos.UserRepository) http.HandlerFunc {
 			return
 		}
 
-		response := &UserResponse{
+		response := &responses.UserResponse{
 			UserId:    user.ID,
+			Role:      user.Role,
 			Username:  user.Username,
 			CreatedAt: user.CreatedAt,
 		}
@@ -125,8 +114,48 @@ func deleteUser(userRepo *repos.UserRepository) http.HandlerFunc {
 			return
 		}
 
-		res := &UserDeletionResponse{
+		res := &responses.UserDeletionResponse{
 			Message: "User deleted successfully",
+		}
+
+		helpers.HttpJson(w, http.StatusOK, res)
+	}
+}
+
+func updateUserRole(userRepo *repos.UserRepository) http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		var req requests.UserRoleUpdateRequest
+		if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+			helpers.HttpError(w, http.StatusBadRequest, "Invalid request")
+			return
+		}
+		if req.UserId == 0 || req.Role == "" {
+			helpers.HttpError(w, http.StatusBadRequest, "Missing userId and role")
+			return
+		}
+
+		if req.Role != "admin" && req.Role != "user" {
+			helpers.HttpError(w, http.StatusBadRequest, "invalid user role, role must be 'admin' or 'user'")
+			return
+		}
+
+		err := userRepo.UpdateUserRole(req.UserId, req.Role)
+		if err != nil {
+			helpers.HttpError(w, http.StatusInternalServerError, "failed to update user role")
+			return
+		}
+
+		user, err := userRepo.GetUserById(req.UserId)
+		if err != nil {
+			helpers.HttpError(w, http.StatusInternalServerError, "User update succeeded but fetch failed")
+			return
+		}
+
+		res := &responses.UserResponse{
+			UserId:    user.ID,
+			Role:      user.Role,
+			Username:  user.Username,
+			CreatedAt: user.CreatedAt,
 		}
 
 		helpers.HttpJson(w, http.StatusOK, res)

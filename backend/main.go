@@ -29,6 +29,9 @@ func main() {
 	r.Route("/users", func(r chi.Router) {
 		routes.UsersRouter(r, db.DB)
 	})
+	r.Route("/events", func(r chi.Router) {
+		routes.EventsRouter(r, db.DB)
+	})
 
 	r.NotFound(routes.NotFound)
 	r.MethodNotAllowed(routes.NotAllowed)
