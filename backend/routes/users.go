@@ -16,23 +16,42 @@ import (
 func UsersRouter(r chi.Router, db *sql.DB, api *repos.API) {
 	r.Get("/", func(w http.ResponseWriter, r *http.Request) {
 		helpers.ProtectedHandler(w, r, func(username string) bool {
-			return isAdminCallBack(username, api.UserRepo)
+			return api.UserRepo.IsAdmin(username)
 		}, getAllUsers(api.UserRepo))
 	})
 	r.Put("/", func(w http.ResponseWriter, r *http.Request) {
 		helpers.ProtectedHandler(w, r, func(username string) bool {
-			return isAdminCallBack(username, api.UserRepo)
+			return api.UserRepo.IsAdmin(username)
 		}, updateUserRole(api.UserRepo))
 	})
 	r.Get("/{id}", func(w http.ResponseWriter, r *http.Request) {
 		helpers.ProtectedHandler(w, r, func(username string) bool {
-			return isSameUserCallback(username, api.UserRepo, r)
+			userId, err := helpers.ParseUserIdFromRoute(r)
+			if err != nil {
+				return false
+			}
+			return api.UserRepo.IsSameUser(username, userId) || api.UserRepo.IsAdmin(username)
 		}, getUser(api.UserRepo))
 	})
+
 	r.Delete("/{id}", func(w http.ResponseWriter, r *http.Request) {
-		helpers.ProtectedHandler(w, r, func(s string) bool {
-			return isSameUserCallback(s, api.UserRepo, r)
+		helpers.ProtectedHandler(w, r, func(username string) bool {
+			userId, err := helpers.ParseUserIdFromRoute(r)
+			if err != nil {
+				return false
+			}
+			return api.UserRepo.IsSameUser(username, userId) || api.UserRepo.IsAdmin(username)
 		}, deleteUser(api.UserRepo))
+	})
+
+	r.Get("/events/{id}", func(w http.ResponseWriter, r *http.Request) {
+		helpers.ProtectedHandler(w, r, func(username string) bool {
+			userId, err := helpers.ParseUserIdFromRoute(r)
+			if err != nil {
+				return false
+			}
+			return api.UserRepo.IsSameUser(username, userId) || api.UserRepo.IsAdmin(username)
+		}, getUserEvents(api.EventRepo))
 	})
 }
 
@@ -45,41 +64,6 @@ func getAllUsers(userRepo *repos.UserRepository) http.HandlerFunc {
 		}
 
 		helpers.HttpJson(w, http.StatusOK, users)
-	}
-}
-
-func createUser(userRepo *repos.UserRepository) http.HandlerFunc {
-	return func(w http.ResponseWriter, r *http.Request) {
-		var req requests.UserCreateRequest
-		if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
-			helpers.HttpError(w, http.StatusBadRequest, "Invalid request")
-			return
-		}
-		if req.Username == "" || req.Password == "" {
-			helpers.HttpError(w, http.StatusBadRequest, "Missing username and password")
-			return
-		}
-
-		userId, err := userRepo.CreateUser(req.Username, req.Password)
-		if err != nil {
-			helpers.HttpError(w, http.StatusInternalServerError, "Could not create user")
-			return
-		}
-
-		user, err := userRepo.GetUserById(userId)
-		if err != nil {
-			helpers.HttpError(w, http.StatusInternalServerError, "User creation succeeded but fetch failed")
-			return
-		}
-
-		res := &responses.UserResponse{
-			UserId:    user.ID,
-			Role:      user.Role,
-			Username:  user.Username,
-			CreatedAt: user.CreatedAt,
-		}
-
-		helpers.HttpJson(w, http.StatusCreated, res)
 	}
 }
 
@@ -175,23 +159,21 @@ func updateUserRole(userRepo *repos.UserRepository) http.HandlerFunc {
 	}
 }
 
-func isAdminCallBack(username string, userRepo *repos.UserRepository) bool {
-	user, err := userRepo.GetUserByUsername(username)
-	if err != nil {
-		return false
-	}
-	return user.Role == "admin"
-}
+func getUserEvents(eventRepository *repos.EventRepository) http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		idStr := chi.URLParam(r, "id")
+		id, err := strconv.ParseInt(idStr, 10, 64)
+		if err != nil {
+			helpers.HttpError(w, http.StatusBadRequest, "invalid user ID, pass a valid one")
+			return
+		}
 
-func isSameUserCallback(username string, userRepo *repos.UserRepository, r *http.Request) bool {
-	idStr := chi.URLParam(r, "id")
-	id, err := strconv.ParseInt(idStr, 10, 64)
-	if err != nil {
-		return false
+		events, err := eventRepository.GetEventsForUser(id)
+		if err != nil {
+			helpers.HttpError(w, http.StatusInternalServerError, "failed to get user events")
+			return
+		}
+
+		helpers.HttpJson(w, http.StatusOK, events)
 	}
-	user, err := userRepo.GetUserByUsername(username)
-	if err != nil {
-		return false
-	}
-	return user.ID == id
 }

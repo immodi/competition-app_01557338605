@@ -55,7 +55,7 @@ func ProtectedHandler(w http.ResponseWriter, r *http.Request, isQualifiedCallbac
 	w.Header().Set("Content-Type", "application/json")
 	tokenString := r.Header.Get("Authorization")
 	if tokenString == "" {
-		HttpError(w, http.StatusUnauthorized, "no token?")
+		HttpError(w, http.StatusUnauthorized, "request does not contain an access token")
 		return
 	}
 	tokenString = tokenString[len("Bearer "):]

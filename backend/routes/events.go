@@ -3,6 +3,7 @@ package routes
 import (
 	"database/sql"
 	"encoding/json"
+	"fmt"
 	"immodi/submission-backend/helpers"
 	"immodi/submission-backend/repos"
 	"immodi/submission-backend/routes/requests"
@@ -17,44 +18,44 @@ import (
 func EventsRouter(r chi.Router, db *sql.DB, api *repos.API) {
 
 	r.Get("/", func(w http.ResponseWriter, r *http.Request) {
-		helpers.ProtectedHandler(w, r, func(username string) bool {
-			return true
-		}, getAllEvents(api.EventRepo))
+		helpers.ProtectedHandler(w, r, nil, getAllEvents(api.EventRepo))
 	})
 	r.Post("/", func(w http.ResponseWriter, r *http.Request) {
 		helpers.ProtectedHandler(w, r, func(username string) bool {
-			return isAdminCallBack(username, api.UserRepo)
+			return api.UserRepo.IsAdmin(username)
 		}, createEvent(api.EventRepo))
 	})
 	r.Get("/{id}", func(w http.ResponseWriter, r *http.Request) {
-		helpers.ProtectedHandler(w, r, func(username string) bool {
-			return true
-		}, getEvent(api.EventRepo))
+		helpers.ProtectedHandler(w, r, nil, getEvent(api.EventRepo))
 	})
 	r.Get("/category/{category}", func(w http.ResponseWriter, r *http.Request) {
-		helpers.ProtectedHandler(w, r, func(username string) bool {
-			return true
-		}, getEventsByCategory(api.EventRepo))
+		helpers.ProtectedHandler(w, r, nil, getEventsByCategory(api.EventRepo))
 	})
-	r.Put("/", func(w http.ResponseWriter, r *http.Request) {
+	r.Put("/{id}", func(w http.ResponseWriter, r *http.Request) {
 		helpers.ProtectedHandler(w, r, func(username string) bool {
-			return isAdminCallBack(username, api.UserRepo)
+			return api.UserRepo.IsAdmin(username)
 		}, updateEvent(api.EventRepo))
 	})
 	r.Delete("/{id}", func(w http.ResponseWriter, r *http.Request) {
 		helpers.ProtectedHandler(w, r, func(username string) bool {
-			return isAdminCallBack(username, api.UserRepo)
+			return api.UserRepo.IsAdmin(username)
 		}, deleteEvent(api.EventRepo))
 	})
 	r.Get("/upcoming", func(w http.ResponseWriter, r *http.Request) {
-		helpers.ProtectedHandler(w, r, func(username string) bool {
-			return true
-		}, getUpcomingEvents(api.EventRepo))
+		helpers.ProtectedHandler(w, r, nil, getUpcomingEvents(api.EventRepo))
 	})
 	r.Get("/search/{keyword}", func(w http.ResponseWriter, r *http.Request) {
+		helpers.ProtectedHandler(w, r, nil, searchEvents(api.EventRepo))
+	})
+
+	r.Post("/assign/{id}", func(w http.ResponseWriter, r *http.Request) {
 		helpers.ProtectedHandler(w, r, func(username string) bool {
-			return true
-		}, searchEvents(api.EventRepo))
+			userId, err := helpers.ParseTheUserIdFromRequest(r)
+			if err != nil {
+				return false
+			}
+			return api.UserRepo.IsSameUser(username, userId) || api.UserRepo.IsAdmin(username)
+		}, assignEvent(api.EventRepo, api.UserRepo))
 	})
 }
 
@@ -229,4 +230,48 @@ func searchEvents(eventRepo *repos.EventRepository) http.HandlerFunc {
 		helpers.HttpJson(w, http.StatusOK, events)
 	}
 
+}
+
+func assignEvent(eventRepo *repos.EventRepository, userRepo *repos.UserRepository) http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		idStr := chi.URLParam(r, "id")
+		eventId, err := strconv.ParseInt(idStr, 10, 64)
+		if err != nil {
+			helpers.HttpError(w, http.StatusBadRequest, "invalid id, pass a valid one")
+			return
+		}
+
+		var req requests.EventAssignRequest
+		if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+			helpers.HttpError(w, http.StatusBadRequest, "invalid request, likey an invalid schema")
+			return
+		}
+
+		if eventId == 0 || req.UserID == 0 {
+			helpers.HttpError(w, http.StatusBadRequest, "missing event id or user id")
+			return
+		}
+
+		user, err := userRepo.GetUserById(req.UserID)
+		if err != nil {
+			helpers.HttpError(w, http.StatusInternalServerError, fmt.Sprintf("could not find the user with id '%d'", req.UserID))
+			return
+		}
+		if user == nil {
+			helpers.HttpError(w, http.StatusNotFound, fmt.Sprintf("user with id '%d' not found", req.UserID))
+			return
+		}
+
+		err = eventRepo.RegisterUserToEvent(user.ID, eventId)
+		if err != nil {
+			helpers.HttpError(w, http.StatusInternalServerError, fmt.Sprintf("could not assign the event to the user with id '%d'", req.UserID))
+			return
+		}
+
+		res := &responses.EventResponse{
+			EventId: eventId,
+		}
+
+		helpers.HttpJson(w, http.StatusOK, res)
+	}
 }

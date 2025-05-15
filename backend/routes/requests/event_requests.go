@@ -9,3 +9,7 @@ type EventRequest struct {
 	Price       float64 `json:"price"`
 	Image       []byte  `json:"image,omitempty"`
 }
+
+type EventAssignRequest struct {
+	UserID int64 `json:"userId"`
+}

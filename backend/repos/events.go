@@ -31,7 +31,7 @@ func (r *EventRepository) GetAllEvents() ([]Event, error) {
 	}
 	defer rows.Close()
 
-	var events []Event
+	events := []Event{}
 	for rows.Next() {
 		var e Event
 		if err := rows.Scan(&e.ID, &e.Name, &e.Description, &e.Category, &e.Date, &e.Venue, &e.Price, &e.Image); err != nil {
@@ -63,7 +63,7 @@ func (r *EventRepository) GetEventsByCategory(category string) ([]Event, error) 
 	}
 	defer rows.Close()
 
-	var events []Event
+	events := []Event{}
 	for rows.Next() {
 		var e Event
 		if err := rows.Scan(&e.ID, &e.Name, &e.Description, &e.Category, &e.Date, &e.Venue, &e.Price, &e.Image); err != nil {
@@ -120,7 +120,7 @@ func (r *EventRepository) GetUpcomingEvents() ([]Event, error) {
 	}
 	defer rows.Close()
 
-	var events []Event
+	events := []Event{}
 	for rows.Next() {
 		var e Event
 		if err := rows.Scan(&e.ID, &e.Name, &e.Description, &e.Category, &e.Date, &e.Venue, &e.Price, &e.Image); err != nil {
@@ -145,7 +145,7 @@ func (r *EventRepository) SearchEvents(keyword string) ([]Event, error) {
 	}
 	defer rows.Close()
 
-	var events []Event
+	events := []Event{}
 	for rows.Next() {
 		var e Event
 		if err := rows.Scan(&e.ID, &e.Name, &e.Description, &e.Category, &e.Date, &e.Venue, &e.Price, &e.Image); err != nil {
@@ -157,9 +157,10 @@ func (r *EventRepository) SearchEvents(keyword string) ([]Event, error) {
 }
 
 func (r *EventRepository) RegisterUserToEvent(userID, eventID int64) error {
-	_, err := r.db.Exec(
-		`INSERT INTO registrations (user_id, event_id) VALUES (?, ?)`,
-		userID, eventID)
+	_, err := r.db.Exec(`
+		INSERT INTO registrations (user_id, event_id)
+		VALUES (?, ?)
+	`, userID, eventID)
 	if err != nil {
 		return fmt.Errorf("failed to register user %d to event %d: %w", userID, eventID, err)
 	}
@@ -177,7 +178,7 @@ func (r *EventRepository) GetEventsForUser(userID int64) ([]Event, error) {
 	}
 	defer rows.Close()
 
-	var events []Event
+	events := []Event{}
 	for rows.Next() {
 		var e Event
 		if err := rows.Scan(&e.ID, &e.Name, &e.Description, &e.Category, &e.Date, &e.Venue, &e.Price, &e.Image); err != nil {

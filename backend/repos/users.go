@@ -28,7 +28,7 @@ func (r *UserRepository) GetAllUsers() ([]User, error) {
 	}
 	defer rows.Close()
 
-	var users []User
+	users := []User{}
 	for rows.Next() {
 		var u User
 		if err := rows.Scan(&u.ID, &u.Username, &u.Role, &u.CreatedAt); err != nil {
@@ -122,4 +122,30 @@ func (r *UserRepository) UpdateUserRole(id int64, role string) error {
 		return fmt.Errorf("failed to update user id %d: %w", id, err)
 	}
 	return nil
+}
+
+func (r *UserRepository) IsAdmin(username string) bool {
+	user, err := r.GetUserByUsername(username)
+	if err != nil {
+		return false
+	}
+
+	if user == nil {
+		return false
+	}
+	return user.Role == "admin"
+}
+
+func (r *UserRepository) IsSameUser(username string, resourceOwnerId int64) bool {
+	user, err := r.GetUserById(resourceOwnerId)
+
+	if err != nil {
+		return false
+	}
+
+	if user == nil {
+		return false
+	}
+
+	return user.Username == username
 }
