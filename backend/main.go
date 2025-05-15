@@ -2,6 +2,7 @@ package main
 
 import (
 	"immodi/submission-backend/db"
+	"immodi/submission-backend/repos"
 	"immodi/submission-backend/routes"
 	"log"
 	"net/http"
@@ -20,17 +21,25 @@ func main() {
 
 	// Create the router
 	r := chi.NewRouter()
+	api := &repos.API{
+		EventRepo: repos.NewEventRepository(db.DB),
+		UserRepo:  repos.NewUserRepository(db.DB),
+		AuthRepo:  repos.NewAuthRepository(db.DB),
+	}
 
 	// Middlewares
 	r.Use(middleware.Logger)
 
 	// Routes
 	r.Get("/", routes.Root)
+	r.Route("/auth", func(r chi.Router) {
+		routes.AuthRouter(r, db.DB, api)
+	})
 	r.Route("/users", func(r chi.Router) {
-		routes.UsersRouter(r, db.DB)
+		routes.UsersRouter(r, db.DB, api)
 	})
 	r.Route("/events", func(r chi.Router) {
-		routes.EventsRouter(r, db.DB)
+		routes.EventsRouter(r, db.DB, api)
 	})
 
 	r.NotFound(routes.NotFound)

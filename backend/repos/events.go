@@ -155,3 +155,35 @@ func (r *EventRepository) SearchEvents(keyword string) ([]Event, error) {
 	}
 	return events, rows.Err()
 }
+
+func (r *EventRepository) RegisterUserToEvent(userID, eventID int64) error {
+	_, err := r.db.Exec(
+		`INSERT INTO registrations (user_id, event_id) VALUES (?, ?)`,
+		userID, eventID)
+	if err != nil {
+		return fmt.Errorf("failed to register user %d to event %d: %w", userID, eventID, err)
+	}
+	return nil
+}
+
+func (r *EventRepository) GetEventsForUser(userID int64) ([]Event, error) {
+	rows, err := r.db.Query(
+		`SELECT e.id, e.name, e.description, e.category, e.date, e.venue, e.price, e.image
+		 FROM events e
+		 JOIN registrations r ON e.id = r.event_id
+		 WHERE r.user_id = ?`, userID)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+
+	var events []Event
+	for rows.Next() {
+		var e Event
+		if err := rows.Scan(&e.ID, &e.Name, &e.Description, &e.Category, &e.Date, &e.Venue, &e.Price, &e.Image); err != nil {
+			return nil, err
+		}
+		events = append(events, e)
+	}
+	return events, nil
+}

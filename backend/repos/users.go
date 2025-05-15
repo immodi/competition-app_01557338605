@@ -43,12 +43,12 @@ func (r *UserRepository) GetAllUsers() ([]User, error) {
 func (r *UserRepository) CreateUser(username, password string) (int64, error) {
 	// Check for existing user
 	if existing, _ := r.GetUserByUsername(username); existing != nil {
-		return 0, fmt.Errorf("user '%s' already exists", username)
+		return 400, fmt.Errorf("user '%s' already exists", username)
 	}
 
 	hashedPassword, err := helpers.HashPassword(password)
 	if err != nil {
-		return 0, fmt.Errorf("failed to hash password: %w", err)
+		return 500, fmt.Errorf("failed to hash password: %w", err)
 	}
 
 	result, err := r.db.Exec(
@@ -56,7 +56,7 @@ func (r *UserRepository) CreateUser(username, password string) (int64, error) {
 		username, hashedPassword,
 	)
 	if err != nil {
-		return 0, fmt.Errorf("failed to create user: %w", err)
+		return 500, fmt.Errorf("failed to create user: %w", err)
 	}
 
 	return result.LastInsertId()

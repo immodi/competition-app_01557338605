@@ -13,14 +13,27 @@ import (
 	"github.com/go-chi/chi/v5"
 )
 
-func UsersRouter(r chi.Router, db *sql.DB) {
-	userRepository := repos.NewUserRepository(db)
-
-	r.Get("/", getAllUsers(userRepository))
-	r.Post("/", createUser(userRepository))
-	r.Put("/", updateUserRole(userRepository))
-	r.Get("/{id}", getUser(userRepository))
-	r.Delete("/{id}", deleteUser(userRepository))
+func UsersRouter(r chi.Router, db *sql.DB, api *repos.API) {
+	r.Get("/", func(w http.ResponseWriter, r *http.Request) {
+		helpers.ProtectedHandler(w, r, func(username string) bool {
+			return isAdminCallBack(username, api.UserRepo)
+		}, getAllUsers(api.UserRepo))
+	})
+	r.Put("/", func(w http.ResponseWriter, r *http.Request) {
+		helpers.ProtectedHandler(w, r, func(username string) bool {
+			return isAdminCallBack(username, api.UserRepo)
+		}, updateUserRole(api.UserRepo))
+	})
+	r.Get("/{id}", func(w http.ResponseWriter, r *http.Request) {
+		helpers.ProtectedHandler(w, r, func(username string) bool {
+			return isSameUserCallback(username, api.UserRepo, r)
+		}, getUser(api.UserRepo))
+	})
+	r.Delete("/{id}", func(w http.ResponseWriter, r *http.Request) {
+		helpers.ProtectedHandler(w, r, func(s string) bool {
+			return isSameUserCallback(s, api.UserRepo, r)
+		}, deleteUser(api.UserRepo))
+	})
 }
 
 func getAllUsers(userRepo *repos.UserRepository) http.HandlerFunc {
@@ -160,4 +173,25 @@ func updateUserRole(userRepo *repos.UserRepository) http.HandlerFunc {
 
 		helpers.HttpJson(w, http.StatusOK, res)
 	}
+}
+
+func isAdminCallBack(username string, userRepo *repos.UserRepository) bool {
+	user, err := userRepo.GetUserByUsername(username)
+	if err != nil {
+		return false
+	}
+	return user.Role == "admin"
+}
+
+func isSameUserCallback(username string, userRepo *repos.UserRepository, r *http.Request) bool {
+	idStr := chi.URLParam(r, "id")
+	id, err := strconv.ParseInt(idStr, 10, 64)
+	if err != nil {
+		return false
+	}
+	user, err := userRepo.GetUserByUsername(username)
+	if err != nil {
+		return false
+	}
+	return user.ID == id
 }

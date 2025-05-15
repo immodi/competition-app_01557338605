@@ -60,6 +60,15 @@ func initSchema(db *sql.DB) error {
 			price REAL NOT NULL,
 			image BLOB
 		);`,
+
+		`CREATE TABLE IF NOT EXISTS registrations (
+			user_id INTEGER NOT NULL,
+			event_id INTEGER NOT NULL,
+			registered_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+			PRIMARY KEY (user_id, event_id),
+			FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE,
+			FOREIGN KEY (event_id) REFERENCES events(id) ON DELETE CASCADE
+		);`,
 	}
 
 	for _, stmt := range schemaStatements {
