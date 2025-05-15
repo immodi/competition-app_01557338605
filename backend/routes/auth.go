@@ -7,12 +7,13 @@ import (
 	"immodi/submission-backend/repos"
 	"immodi/submission-backend/routes/requests"
 	"immodi/submission-backend/routes/responses"
+	helper_structs "immodi/submission-backend/structs"
 	"net/http"
 
 	"github.com/go-chi/chi/v5"
 )
 
-func AuthRouter(r chi.Router, db *sql.DB, api *repos.API) {
+func AuthRouter(r chi.Router, db *sql.DB, api *helper_structs.API) {
 	r.Post("/login", login(api.AuthRepo))
 	r.Post("/register", register(api.UserRepo))
 }

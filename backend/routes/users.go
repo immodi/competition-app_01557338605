@@ -7,13 +7,14 @@ import (
 	"immodi/submission-backend/repos"
 	"immodi/submission-backend/routes/requests"
 	"immodi/submission-backend/routes/responses"
+	helper_structs "immodi/submission-backend/structs"
 	"net/http"
 	"strconv"
 
 	"github.com/go-chi/chi/v5"
 )
 
-func UsersRouter(r chi.Router, db *sql.DB, api *repos.API) {
+func UsersRouter(r chi.Router, db *sql.DB, api *helper_structs.API) {
 	r.Get("/", func(w http.ResponseWriter, r *http.Request) {
 		helpers.ProtectedHandler(w, r, func(username string) bool {
 			return api.UserRepo.IsAdmin(username)

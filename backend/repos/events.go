@@ -6,14 +6,22 @@ import (
 )
 
 type Event struct {
-	ID          int64   `json:"id"`
-	Name        string  `json:"name"`
-	Description string  `json:"description"`
-	Category    string  `json:"category"`
-	Date        string  `json:"date"`
-	Venue       string  `json:"venue"`
-	Price       float64 `json:"price"`
-	Image       []byte  `json:"image,omitempty"`
+	ID           int64              `json:"id"`
+	Name         string             `json:"name"`
+	Description  string             `json:"description"`
+	Category     string             `json:"category"`
+	Date         string             `json:"date"`
+	Venue        string             `json:"venue"`
+	Price        float64            `json:"price"`
+	Image        []byte             `json:"image,omitempty"`
+	Translations []EventTranslation `json:"translations"`
+}
+
+type EventTranslation struct {
+	Language    string `json:"language"`
+	Name        string `json:"name"`
+	Description string `json:"description"`
+	Venue       string `json:"venue"`
 }
 
 type EventRepository struct {
@@ -53,6 +61,11 @@ func (r *EventRepository) GetEventById(id int64) (*Event, error) {
 		}
 		return nil, fmt.Errorf("failed to get event by id %d: %w", id, err)
 	}
+
+	e.Translations, err = r.GetEventTranslations(id)
+	if err != nil {
+		return nil, fmt.Errorf("failed to get event translations by id %d: %w", id, err)
+	}
 	return &e, nil
 }
 
@@ -75,7 +88,7 @@ func (r *EventRepository) GetEventsByCategory(category string) ([]Event, error) 
 	return events, rows.Err()
 }
 
-func (r *EventRepository) CreateEvent(name, description, category, date, venue string, price float64, image []byte) (int64, error) {
+func (r *EventRepository) CreateEvent(name, description, category, date, venue string, price float64, image []byte, eventTranslations []EventTranslation) (int64, error) {
 	result, err := r.db.Exec(
 		`INSERT INTO events (name, description, category, date, venue, price, image) 
 		 VALUES (?, ?, ?, ?, ?, ?, ?)`,
@@ -84,10 +97,26 @@ func (r *EventRepository) CreateEvent(name, description, category, date, venue s
 	if err != nil {
 		return 0, fmt.Errorf("failed to create event: %w", err)
 	}
+
+	eventId, err := result.LastInsertId()
+	if err != nil {
+		return 0, fmt.Errorf("failed to get last insert id: %w", err)
+	}
+
+	for _, et := range eventTranslations {
+		_, err := r.db.Exec(
+			`INSERT INTO event_translations (event_id, language, name, description, venue) 
+			 VALUES (?, ?, ?, ?, ?)`,
+			eventId, et.Language, et.Name, et.Description, et.Venue,
+		)
+		if err != nil {
+			return 0, fmt.Errorf("failed to create event translation: %w", err)
+		}
+	}
 	return result.LastInsertId()
 }
 
-func (r *EventRepository) UpdateEvent(id int64, name, description, category, date, venue string, price float64, image []byte) error {
+func (r *EventRepository) UpdateEvent(id int64, name, description, category, date, venue string, price float64, image []byte, eventTranslations []EventTranslation) error {
 	_, err := r.db.Exec(
 		`UPDATE events 
 		 SET name = ?, description = ?, category = ?, date = ?, venue = ?, price = ?, image = ? 
@@ -97,6 +126,23 @@ func (r *EventRepository) UpdateEvent(id int64, name, description, category, dat
 	if err != nil {
 		return fmt.Errorf("failed to update event id %d: %w", id, err)
 	}
+
+	_, err = r.db.Exec(`DELETE FROM event_translations WHERE event_id = ?`, id)
+	if err != nil {
+		return fmt.Errorf("failed to delete existing event translations: %w", err)
+	}
+
+	for _, et := range eventTranslations {
+		_, err := r.db.Exec(
+			`INSERT INTO event_translations (event_id, language, name, description, venue) 
+         VALUES (?, ?, ?, ?, ?)`,
+			id, et.Language, et.Name, et.Description, et.Venue,
+		)
+		if err != nil {
+			return fmt.Errorf("failed to insert event translation: %w", err)
+		}
+	}
+
 	return nil
 }
 
@@ -187,4 +233,23 @@ func (r *EventRepository) GetEventsForUser(userID int64) ([]Event, error) {
 		events = append(events, e)
 	}
 	return events, nil
+}
+
+func (r *EventRepository) GetEventTranslations(eventId int64) ([]EventTranslation, error) {
+	rows, err := r.db.Query("SELECT language, name, description, venue FROM event_translations WHERE event_id = ?", eventId)
+	if err != nil {
+		return nil, fmt.Errorf("fetching events by category failed: %w", err)
+	}
+	defer rows.Close()
+
+	eventTranslations := []EventTranslation{}
+	for rows.Next() {
+		var e EventTranslation
+		if err := rows.Scan(&e.Language, &e.Name, &e.Description, &e.Venue); err != nil {
+			return nil, fmt.Errorf("error scanning event by category: %w", err)
+		}
+		eventTranslations = append(eventTranslations, e)
+	}
+
+	return eventTranslations, rows.Err()
 }

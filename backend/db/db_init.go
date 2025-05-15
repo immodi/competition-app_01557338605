@@ -61,6 +61,16 @@ func initSchema(db *sql.DB) error {
 			image BLOB
 		);`,
 
+		`CREATE TABLE IF NOT EXISTS event_translations (
+			id INTEGER PRIMARY KEY AUTOINCREMENT,
+			event_id INTEGER NOT NULL,
+			language TEXT NOT NULL,
+			name TEXT NOT NULL,
+			description TEXT NOT NULL,
+			venue TEXT NOT NULL,
+			FOREIGN KEY (event_id) REFERENCES events(id) ON DELETE CASCADE
+		);`,
+
 		`CREATE TABLE IF NOT EXISTS registrations (
 			user_id INTEGER NOT NULL,
 			event_id INTEGER NOT NULL,

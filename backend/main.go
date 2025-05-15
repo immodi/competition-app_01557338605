@@ -4,6 +4,7 @@ import (
 	"immodi/submission-backend/db"
 	"immodi/submission-backend/repos"
 	"immodi/submission-backend/routes"
+	helper_structs "immodi/submission-backend/structs"
 	"log"
 	"net/http"
 
@@ -27,7 +28,7 @@ func main() {
 
 	// Create the router
 	r := chi.NewRouter()
-	api := &repos.API{
+	api := &helper_structs.API{
 		EventRepo: repos.NewEventRepository(db.DB),
 		UserRepo:  repos.NewUserRepository(db.DB),
 		AuthRepo:  repos.NewAuthRepository(db.DB),

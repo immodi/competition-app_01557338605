@@ -8,6 +8,7 @@ import (
 	"immodi/submission-backend/repos"
 	"immodi/submission-backend/routes/requests"
 	"immodi/submission-backend/routes/responses"
+	helper_structs "immodi/submission-backend/structs"
 	"net/http"
 	"strconv"
 	"time"
@@ -15,11 +16,12 @@ import (
 	"github.com/go-chi/chi/v5"
 )
 
-func EventsRouter(r chi.Router, db *sql.DB, api *repos.API) {
+func EventsRouter(r chi.Router, db *sql.DB, api *helper_structs.API) {
 
 	r.Get("/", func(w http.ResponseWriter, r *http.Request) {
-		helpers.ProtectedHandler(w, r, nil, getAllEvents(api.EventRepo))
+		helpers.ProtectedHandler(w, r, nil, getAllEvents(api.EventRepo, r))
 	})
+
 	r.Post("/", func(w http.ResponseWriter, r *http.Request) {
 		helpers.ProtectedHandler(w, r, func(username string) bool {
 			return api.UserRepo.IsAdmin(username)
@@ -28,6 +30,7 @@ func EventsRouter(r chi.Router, db *sql.DB, api *repos.API) {
 	r.Get("/{id}", func(w http.ResponseWriter, r *http.Request) {
 		helpers.ProtectedHandler(w, r, nil, getEvent(api.EventRepo))
 	})
+
 	r.Get("/category/{category}", func(w http.ResponseWriter, r *http.Request) {
 		helpers.ProtectedHandler(w, r, nil, getEventsByCategory(api.EventRepo))
 	})
@@ -41,6 +44,7 @@ func EventsRouter(r chi.Router, db *sql.DB, api *repos.API) {
 			return api.UserRepo.IsAdmin(username)
 		}, deleteEvent(api.EventRepo))
 	})
+
 	r.Get("/upcoming", func(w http.ResponseWriter, r *http.Request) {
 		helpers.ProtectedHandler(w, r, nil, getUpcomingEvents(api.EventRepo))
 	})
@@ -59,13 +63,31 @@ func EventsRouter(r chi.Router, db *sql.DB, api *repos.API) {
 	})
 }
 
-func getAllEvents(eventRepository *repos.EventRepository) http.HandlerFunc {
+func getAllEvents(eventRepository *repos.EventRepository, r *http.Request) http.HandlerFunc {
+	pageStr := r.URL.Query().Get("page")
+	limitStr := r.URL.Query().Get("limit")
+
+	page := 1
+	limit := 10
+
+	if p, err := strconv.Atoi(pageStr); err == nil && p > 0 {
+		page = p
+	}
+
+	if l, err := strconv.Atoi(limitStr); err == nil && l > 0 {
+		limit = l
+	}
+
 	return func(w http.ResponseWriter, r *http.Request) {
 		events, err := eventRepository.GetAllEvents()
 		if err != nil {
 			helpers.HttpError(w, http.StatusInternalServerError, "Failed to get all events")
 			return
 		}
+
+		startIndex := (page - 1) * limit
+		endIndex := min(page*limit, len(events))
+		events = events[startIndex:endIndex]
 
 		helpers.HttpJson(w, http.StatusOK, events)
 	}
@@ -90,7 +112,7 @@ func createEvent(eventRepo *repos.EventRepository) http.HandlerFunc {
 			return
 		}
 
-		eventId, err := eventRepo.CreateEvent(req.Name, req.Description, req.Category, date.String(), req.Venue, req.Price, req.Image)
+		eventId, err := eventRepo.CreateEvent(req.Name, req.Description, req.Category, date.String(), req.Venue, req.Price, req.Image, req.Translations)
 		if err != nil {
 			helpers.HttpError(w, http.StatusInternalServerError, "could not create event")
 			return
@@ -170,7 +192,7 @@ func updateEvent(eventRepo *repos.EventRepository) http.HandlerFunc {
 			return
 		}
 
-		err = eventRepo.UpdateEvent(eventId, req.Name, req.Description, req.Category, date.String(), req.Venue, req.Price, req.Image)
+		err = eventRepo.UpdateEvent(eventId, req.Name, req.Description, req.Category, date.String(), req.Venue, req.Price, req.Image, req.Translations)
 		if err != nil {
 			helpers.HttpError(w, http.StatusInternalServerError, "could not update the event")
 			return
