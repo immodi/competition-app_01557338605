@@ -3,12 +3,13 @@ package helpers
 import (
 	"fmt"
 	"net/http"
+	"os"
 	"time"
 
 	"github.com/golang-jwt/jwt/v5"
 )
 
-var secretKey = []byte("25dfb0830d20d65fe62c34b4755f4693d1969add26ba74a2b4b9e3f64e87c9959f72e50657e63a17c5c68dd6ce115a9d1257266be5f7d3cbd027a6286b9dea2dc01f6e5cfb1f50ab703f9a5ed36bc1d8c92e6178a86900316b22a3f328d21b892116d20d937f1a1abcce335a2637f28cde6d2ed7e392607f79c77d3981bcccb9644ff7fb8305a65d67a429ef17c88696a68962c0d94cb388cd4203676440de4fb49dcf37febb0010f17e669cece5d7999489c3279cfef3cd373a8f544ab0e5df068904f9db87d7d060e8e2208fe760be8fcddcd2e8d1da764a7ceea7fc8a7087aabb5d0e97e3c878773946bf156f2ce1f4e567dee0a3109d96d17398c5482039")
+var secretKey = []byte(os.Getenv("JWT_SECRET_KEY"))
 
 func CreateToken(username string) (string, error) {
 	token := jwt.NewWithClaims(jwt.SigningMethodHS256,
