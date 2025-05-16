@@ -85,11 +85,21 @@ func getAllEvents(eventRepository *repos.EventRepository, r *http.Request) http.
 			return
 		}
 
+		if len(events) < limit*(page-1) {
+			helpers.HttpError(w, http.StatusBadRequest, "requested page does not exist")
+			return
+		}
+
+		eventsCount := len(events)
 		startIndex := (page - 1) * limit
 		endIndex := min(page*limit, len(events))
 		events = events[startIndex:endIndex]
+		resp := &responses.EventsResponse{
+			Events: events,
+			Count:  eventsCount,
+		}
 
-		helpers.HttpJson(w, http.StatusOK, events)
+		helpers.HttpJson(w, http.StatusOK, resp)
 	}
 }
 

@@ -1,12 +1,16 @@
 import AppContext from "@/contexts/AppContext";
+import useAuthed from "@/hooks/useAuthed";
 import { useEffect, useState } from "react";
+import { Toaster } from "react-hot-toast";
+import { FaTicket } from "react-icons/fa6";
 import { MdDarkMode, MdLightMode } from "react-icons/md";
-import { Outlet } from "react-router";
+import { Outlet, useNavigate } from "react-router";
 
 const App: React.FC = () => {
-    const [darkMode, setDarkMode] = useState(false);
+    const [darkMode, setDarkMode] = useState(true);
     const [header, setHeader] = useState("");
-    const [isAuthed, setIsAuthed] = useState(false);
+    const authData = useAuthed();
+    const navigate = useNavigate();
 
     useEffect(() => {
         if (darkMode) {
@@ -19,11 +23,10 @@ const App: React.FC = () => {
     return (
         <AppContext.Provider
             value={{
-                isAuthed: isAuthed,
                 header: header,
                 isDarkMode: darkMode,
+                authData: authData,
 
-                setIsAuthed: (isAuthed: boolean) => setIsAuthed(isAuthed),
                 toggleDarkMode: () => setDarkMode(!darkMode),
                 changeHeader: (header: string) => setHeader(header),
             }}
@@ -34,12 +37,41 @@ const App: React.FC = () => {
                         {header}
                     </h1>
                     <div className="flex items-center gap-6">
-                        {/* <div className="relative flex items-center">
-                            <FaTicketAlt className="w-7 h-7 text-blue-600" />
-                            <span className="absolute -top-2 -right-2 bg-red-500 text-white text-xs rounded-full px-1.5">
-                                5
-                            </span>
-                        </div> */}
+                        {authData.isAuthed && (
+                            <>
+                                {authData.userData.role === "admin" && (
+                                    <button
+                                        onClick={() =>
+                                            navigate("/event/create")
+                                        }
+                                        className={`ml-3 px-4 py-2 cursor-pointer rounded-lg transition text-sm relative bottom-0.5 ${
+                                            darkMode
+                                                ? "bg-blue-500 hover:bg-blue-600 text-white"
+                                                : "bg-blue-600 hover:bg-blue-700 text-white"
+                                        }`}
+                                    >
+                                        Create Event
+                                    </button>
+                                )}
+                                <button
+                                    onClick={authData.logout}
+                                    className={`px-4 py-2 cursor-pointer rounded-lg transition text-sm relative bottom-0.5 ${
+                                        darkMode
+                                            ? "bg-red-500 hover:bg-red-600 text-white"
+                                            : "bg-red-600 hover:bg-red-700 text-white"
+                                    }`}
+                                >
+                                    Logout
+                                </button>
+                                <div className="relative flex items-center">
+                                    <FaTicket className="w-7 h-7 text-gray-800 dark:text-white" />
+                                    <span className="absolute -top-2 -right-2 bg-red-500 text-white text-xs rounded-full px-1.5">
+                                        {authData.userData.tickets}
+                                    </span>
+                                </div>
+                            </>
+                        )}
+
                         {darkMode ? (
                             <MdLightMode
                                 onClick={() => setDarkMode(false)}
@@ -56,6 +88,7 @@ const App: React.FC = () => {
                     </div>
                 </header>
                 <Outlet />
+                <Toaster />
             </div>
         </AppContext.Provider>
     );

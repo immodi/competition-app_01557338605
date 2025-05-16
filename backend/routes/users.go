@@ -35,6 +35,10 @@ func UsersRouter(r chi.Router, db *sql.DB, api *helper_structs.API) {
 		}, getUser(api.UserRepo))
 	})
 
+	r.Get("/data", func(w http.ResponseWriter, r *http.Request) {
+		helpers.ProtectedHandler(w, r, nil, getUserDataFromToken(api.UserRepo))
+	})
+
 	r.Delete("/{id}", func(w http.ResponseWriter, r *http.Request) {
 		helpers.ProtectedHandler(w, r, func(username string) bool {
 			userId, err := helpers.ParseUserIdFromRoute(r)
@@ -92,6 +96,35 @@ func getUser(userRepo *repos.UserRepository) http.HandlerFunc {
 			Role:      user.Role,
 			Username:  user.Username,
 			CreatedAt: user.CreatedAt,
+			Tickets:   user.Tickets,
+		}
+		helpers.HttpJson(w, http.StatusOK, response)
+	}
+}
+
+func getUserDataFromToken(userRepo *repos.UserRepository) http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		username, err := helpers.GetUserNameFromToken(r)
+		if err != nil {
+			helpers.HttpError(w, http.StatusInternalServerError, "couldn't retrieve user")
+		}
+
+		user, err := userRepo.GetUserByUsername(username)
+		if err != nil {
+			helpers.HttpError(w, http.StatusInternalServerError, "could not retrieve user")
+			return
+		}
+		if user == nil {
+			helpers.HttpError(w, http.StatusNotFound, "user not found, try again later")
+			return
+		}
+
+		response := &responses.UserResponse{
+			UserId:    user.ID,
+			Role:      user.Role,
+			Username:  user.Username,
+			CreatedAt: user.CreatedAt,
+			Tickets:   user.Tickets,
 		}
 		helpers.HttpJson(w, http.StatusOK, response)
 	}

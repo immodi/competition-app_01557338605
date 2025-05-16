@@ -52,6 +52,22 @@ func verifyToken(tokenString string) (string, error) {
 	return username, nil
 }
 
+func GetUserNameFromToken(r *http.Request) (string, error) {
+	tokenString := r.Header.Get("Authorization")
+	if tokenString == "" {
+		return "", fmt.Errorf("request does not contain an access token")
+	}
+
+	tokenString = tokenString[len("Bearer "):]
+
+	username, err := verifyToken(tokenString)
+	if err != nil {
+		return "", err
+	}
+
+	return username, nil
+}
+
 func ProtectedHandler(w http.ResponseWriter, r *http.Request, isQualifiedCallback func(username string) bool, handler func(w http.ResponseWriter, r *http.Request)) {
 	w.Header().Set("Content-Type", "application/json")
 	tokenString := r.Header.Get("Authorization")
@@ -59,6 +75,7 @@ func ProtectedHandler(w http.ResponseWriter, r *http.Request, isQualifiedCallbac
 		HttpError(w, http.StatusUnauthorized, "request does not contain an access token")
 		return
 	}
+
 	tokenString = tokenString[len("Bearer "):]
 
 	username, err := verifyToken(tokenString)

@@ -5,6 +5,7 @@ type UserResponse struct {
 	Role      string `json:"role"`
 	Username  string `json:"username"`
 	CreatedAt string `json:"createdAt"`
+	Tickets   int64  `json:"tickets"`
 }
 
 type UserDeletionResponse struct {

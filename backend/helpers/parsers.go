@@ -1,8 +1,10 @@
 package helpers
 
 import (
+	"bytes"
 	"encoding/json"
 	"fmt"
+	"io"
 	"net/http"
 	"strconv"
 
@@ -14,8 +16,17 @@ type EventAssignRequest struct {
 }
 
 func ParseTheUserIdFromRequest(r *http.Request) (int64, error) {
+	bodyBytes, err := io.ReadAll(r.Body)
+	if err != nil {
+		return 0, err
+	}
+
+	bodyReader1 := bytes.NewReader(bodyBytes)
+
+	r.Body = io.NopCloser(bytes.NewReader(bodyBytes))
+
 	var req EventAssignRequest
-	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+	if err := json.NewDecoder(bodyReader1).Decode(&req); err != nil {
 		return 0, err
 	}
 
