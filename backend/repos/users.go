@@ -10,6 +10,7 @@ type User struct {
 	ID        int64  `json:"id"`
 	Username  string `json:"username"`
 	CreatedAt string `json:"createdAt"`
+	Tickets   int64  `json:"tickets"`
 	Role      string `json:"role"`
 }
 
@@ -22,7 +23,7 @@ func NewUserRepository(db *sql.DB) *UserRepository {
 }
 
 func (r *UserRepository) GetAllUsers() ([]User, error) {
-	rows, err := r.db.Query("SELECT id, username, role, created_at FROM users")
+	rows, err := r.db.Query("SELECT id, username, role, tickets, created_at FROM users")
 	if err != nil {
 		return nil, fmt.Errorf("failed to retrieve users: %w", err)
 	}
@@ -31,7 +32,7 @@ func (r *UserRepository) GetAllUsers() ([]User, error) {
 	users := []User{}
 	for rows.Next() {
 		var u User
-		if err := rows.Scan(&u.ID, &u.Username, &u.Role, &u.CreatedAt); err != nil {
+		if err := rows.Scan(&u.ID, &u.Username, &u.Role, &u.Tickets, &u.CreatedAt); err != nil {
 			return nil, fmt.Errorf("error scanning user row: %w", err)
 		}
 		users = append(users, u)
@@ -65,9 +66,9 @@ func (r *UserRepository) CreateUser(username, password string) (int64, error) {
 func (r *UserRepository) GetUserByUsername(username string) (*User, error) {
 	var u User
 	err := r.db.QueryRow(
-		"SELECT id, username, role, created_at FROM users WHERE username = ?",
+		"SELECT id, username, role, tickets, created_at FROM users WHERE username = ?",
 		username,
-	).Scan(&u.ID, &u.Username, &u.Role, &u.CreatedAt)
+	).Scan(&u.ID, &u.Username, &u.Role, &u.Tickets, &u.CreatedAt)
 
 	if err != nil {
 		if err == sql.ErrNoRows {
@@ -82,9 +83,9 @@ func (r *UserRepository) GetUserByUsername(username string) (*User, error) {
 func (r *UserRepository) GetUserById(id int64) (*User, error) {
 	var u User
 	err := r.db.QueryRow(
-		"SELECT id, username, role, created_at FROM users WHERE id = ?",
+		"SELECT id, username, role, tickets, created_at FROM users WHERE id = ?",
 		id,
-	).Scan(&u.ID, &u.Username, &u.Role, &u.CreatedAt)
+	).Scan(&u.ID, &u.Username, &u.Role, &u.Tickets, &u.CreatedAt)
 
 	if err != nil {
 		if err == sql.ErrNoRows {
@@ -148,4 +149,16 @@ func (r *UserRepository) IsSameUser(username string, resourceOwnerId int64) bool
 	}
 
 	return user.Username == username
+}
+
+func (r *UserRepository) RemoveOneTicketFromUser(id int64) error {
+	_, err := r.db.Exec(
+		"UPDATE users SET tickets = tickets - 1 WHERE id = ?",
+		id,
+	)
+	if err != nil {
+		return fmt.Errorf("failed to update user id %d: %w", id, err)
+	}
+
+	return nil
 }

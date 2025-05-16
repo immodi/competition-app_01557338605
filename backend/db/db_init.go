@@ -47,6 +47,7 @@ func initSchema(db *sql.DB) error {
 			username TEXT UNIQUE NOT NULL,
 			password_hash TEXT NOT NULL,
 			role TEXT NOT NULL DEFAULT 'user',
+			tickets INTEGER DEFAULT 999,
 			created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 		);`,
 

@@ -290,6 +290,12 @@ func assignEvent(eventRepo *repos.EventRepository, userRepo *repos.UserRepositor
 			return
 		}
 
+		err = userRepo.RemoveOneTicketFromUser(user.ID)
+		if err != nil {
+			helpers.HttpError(w, http.StatusInternalServerError, fmt.Sprintf("could not assign the event to the user with id '%d'", req.UserID))
+			return
+		}
+
 		res := &responses.EventResponse{
 			EventId: eventId,
 		}
