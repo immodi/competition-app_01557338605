@@ -22,11 +22,11 @@ jobs:
         run: |
           mkdir -p dist
           # Windows executable
-          GOOS=windows GOARCH=amd64 go build -o dist/myapp.exe ./cmd/myapp
+          GOOS=windows GOARCH=amd64 go build -o dist/myapp.exe ./backend
           # Linux binary
-          GOOS=linux GOARCH=amd64 go build -o dist/myapp-linux ./cmd/myapp
+          GOOS=linux GOARCH=amd64 go build -o dist/myapp-linux ./backend
           # macOS binary (darwin)
-          GOOS=darwin GOARCH=amd64 go build -o dist/myapp-macos ./cmd/myapp
+          GOOS=darwin GOARCH=amd64 go build -o dist/myapp-macos ./backend
 
       - name: Create Release
         id: create_release
