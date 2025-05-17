@@ -52,6 +52,6 @@ func main() {
 	r.NotFound(routes.NotFound)
 	r.MethodNotAllowed(routes.NotAllowed)
 
-	println("Listening on port http://localhost:3000/")
-	http.ListenAndServe(":3000", r)
+	println("Listening on port http://localhost:8020/")
+	http.ListenAndServe(":8020", r)
 }

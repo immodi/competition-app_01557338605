@@ -71,7 +71,7 @@ or on Windows
 myapp.exe
 ```
 
-The API will start and listen on the configured port (default 3000 if not overridden).
+The API will start and listen on the configured port (default 8020 if not overridden).
 
 ---
 
