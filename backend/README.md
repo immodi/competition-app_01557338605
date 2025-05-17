@@ -1,4 +1,4 @@
-# Submission Backend API
+# Technology Competition App (Backend)
 
 A RESTful API built with Go and [Chi router](https://github.com/go-chi/chi) for managing events and users.
 
@@ -52,26 +52,8 @@ cp .env_example .env
 
 ```bash
 go mod download
-go build -o myapp ./cmd/myapp
+go build -o myapp .
 ```
-
-Replace `./cmd/myapp` with your main package path if different.
-
----
-
-### Run the application
-
-```bash
-./myapp
-```
-
-or on Windows
-
-```powershell
-myapp.exe
-```
-
-The API will start and listen on the configured port (default 8020 if not overridden).
 
 ---
 
@@ -88,6 +70,22 @@ Example `.env` file:
 ```env
 JWT_SECRET_KEY=your-very-strong-secret-key
 ```
+
+---
+
+### Run the application
+
+```bash
+./myapp
+```
+
+or on Windows
+
+```powershell
+myapp.exe
+```
+
+The API will start and listen on the configured port (default 8020 if not overridden).
 
 ---
 
