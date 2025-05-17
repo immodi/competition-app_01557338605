@@ -105,7 +105,7 @@ async function createEvent(
     }
 }
 
-export async function updateEvent(
+async function updateEvent(
     token: string,
     eventId: number,
     eventData: CreateEventRequest
@@ -131,4 +131,89 @@ export async function updateEvent(
     }
 }
 
-export { getEvents, assignUserToEvent, getEventById, createEvent };
+async function getEventsByCategory(
+    token: string,
+    category: string,
+    page: number = 1,
+    limit: number = 10
+): Promise<EventsResponse> {
+    try {
+        const response = await axios.get<EventsResponse>(
+            `${API_URL}/events/category/${category}`,
+            {
+                headers: {
+                    Authorization: `Bearer ${token}`,
+                    "Content-Type": "application/json",
+                },
+                params: {
+                    page,
+                    limit,
+                },
+            }
+        );
+
+        return response.data;
+    } catch (error: any) {
+        throw new Error(
+            error.response?.data?.message ||
+                `Fetching events failed: ${error.message}`
+        );
+    }
+}
+
+async function searchEvents(
+    token: string,
+    query: string,
+    page: number = 1,
+    limit: number = 10
+): Promise<EventsResponse> {
+    try {
+        const response = await axios.get<EventsResponse>(
+            `${API_URL}/events/search/${query}`,
+            {
+                headers: {
+                    Authorization: `Bearer ${token}`,
+                    "Content-Type": "application/json",
+                },
+                params: {
+                    page,
+                    limit,
+                },
+            }
+        );
+
+        return response.data;
+    } catch (error: any) {
+        throw new Error(
+            error.response?.data?.message ||
+                `Fetching events failed: ${error.message}`
+        );
+    }
+}
+
+async function deleteEvent(token: string, eventId: number): Promise<void> {
+    try {
+        await axios.delete(`${API_URL}/events/${eventId}`, {
+            headers: {
+                Authorization: `Bearer ${token}`,
+                "Content-Type": "application/json",
+            },
+        });
+    } catch (error: any) {
+        throw new Error(
+            error.response?.data?.message ||
+                `Deleting event failed: ${error.message}`
+        );
+    }
+}
+
+export {
+    getEvents,
+    assignUserToEvent,
+    getEventById,
+    createEvent,
+    getEventsByCategory,
+    searchEvents,
+    updateEvent,
+    deleteEvent,
+};

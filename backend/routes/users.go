@@ -18,12 +18,12 @@ func UsersRouter(r chi.Router, db *sql.DB, api *helper_structs.API) {
 	r.Get("/", func(w http.ResponseWriter, r *http.Request) {
 		helpers.ProtectedHandler(w, r, func(username string) bool {
 			return api.UserRepo.IsAdmin(username)
-		}, getAllUsers(api.UserRepo))
+		}, GetAllUsers(api.UserRepo))
 	})
 	r.Put("/", func(w http.ResponseWriter, r *http.Request) {
 		helpers.ProtectedHandler(w, r, func(username string) bool {
 			return api.UserRepo.IsAdmin(username)
-		}, updateUserRole(api.UserRepo))
+		}, UpdateUserRole(api.UserRepo))
 	})
 	r.Get("/{id}", func(w http.ResponseWriter, r *http.Request) {
 		helpers.ProtectedHandler(w, r, func(username string) bool {
@@ -32,11 +32,11 @@ func UsersRouter(r chi.Router, db *sql.DB, api *helper_structs.API) {
 				return false
 			}
 			return api.UserRepo.IsSameUser(username, userId) || api.UserRepo.IsAdmin(username)
-		}, getUser(api.UserRepo))
+		}, GetUser(api.UserRepo))
 	})
 
 	r.Get("/data", func(w http.ResponseWriter, r *http.Request) {
-		helpers.ProtectedHandler(w, r, nil, getUserDataFromToken(api.UserRepo))
+		helpers.ProtectedHandler(w, r, nil, GetUserDataFromToken(api.UserRepo))
 	})
 
 	r.Delete("/{id}", func(w http.ResponseWriter, r *http.Request) {
@@ -46,7 +46,7 @@ func UsersRouter(r chi.Router, db *sql.DB, api *helper_structs.API) {
 				return false
 			}
 			return api.UserRepo.IsSameUser(username, userId) || api.UserRepo.IsAdmin(username)
-		}, deleteUser(api.UserRepo))
+		}, DeleteUser(api.UserRepo))
 	})
 
 	r.Get("/events/{id}", func(w http.ResponseWriter, r *http.Request) {
@@ -56,11 +56,11 @@ func UsersRouter(r chi.Router, db *sql.DB, api *helper_structs.API) {
 				return false
 			}
 			return api.UserRepo.IsSameUser(username, userId) || api.UserRepo.IsAdmin(username)
-		}, getUserEvents(api.EventRepo))
+		}, GetUserEvents(api.EventRepo))
 	})
 }
 
-func getAllUsers(userRepo *repos.UserRepository) http.HandlerFunc {
+func GetAllUsers(userRepo repos.UserInterface) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		users, err := userRepo.GetAllUsers()
 		if err != nil {
@@ -72,7 +72,7 @@ func getAllUsers(userRepo *repos.UserRepository) http.HandlerFunc {
 	}
 }
 
-func getUser(userRepo *repos.UserRepository) http.HandlerFunc {
+func GetUser(userRepo repos.UserInterface) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		idStr := chi.URLParam(r, "id")
 		id, err := strconv.ParseInt(idStr, 10, 64)
@@ -102,7 +102,7 @@ func getUser(userRepo *repos.UserRepository) http.HandlerFunc {
 	}
 }
 
-func getUserDataFromToken(userRepo *repos.UserRepository) http.HandlerFunc {
+func GetUserDataFromToken(userRepo repos.UserInterface) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		username, err := helpers.GetUserNameFromToken(r)
 		if err != nil {
@@ -130,7 +130,7 @@ func getUserDataFromToken(userRepo *repos.UserRepository) http.HandlerFunc {
 	}
 }
 
-func deleteUser(userRepo *repos.UserRepository) http.HandlerFunc {
+func DeleteUser(userRepo repos.UserInterface) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		idStr := chi.URLParam(r, "id")
 		id, err := strconv.ParseInt(idStr, 10, 64)
@@ -153,7 +153,7 @@ func deleteUser(userRepo *repos.UserRepository) http.HandlerFunc {
 	}
 }
 
-func updateUserRole(userRepo *repos.UserRepository) http.HandlerFunc {
+func UpdateUserRole(userRepo repos.UserInterface) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		var req requests.UserRoleUpdateRequest
 		if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
@@ -193,7 +193,7 @@ func updateUserRole(userRepo *repos.UserRepository) http.HandlerFunc {
 	}
 }
 
-func getUserEvents(eventRepository *repos.EventRepository) http.HandlerFunc {
+func GetUserEvents(eventRepository *repos.EventRepository) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		idStr := chi.URLParam(r, "id")
 		id, err := strconv.ParseInt(idStr, 10, 64)

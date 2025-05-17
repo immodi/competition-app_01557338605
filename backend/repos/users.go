@@ -18,6 +18,16 @@ type UserRepository struct {
 	db *sql.DB
 }
 
+type UserInterface interface {
+	GetAllUsers() ([]User, error)
+	CreateUser(username, password string) (int64, error)
+	GetUserById(id int64) (*User, error)
+	GetUserByUsername(username string) (*User, error)
+	UpdateUserRole(id int64, role string) error
+	RemoveOneTicketFromUser(id int64) error
+	DeleteUser(id int64) error
+}
+
 func NewUserRepository(db *sql.DB) *UserRepository {
 	return &UserRepository{db: db}
 }

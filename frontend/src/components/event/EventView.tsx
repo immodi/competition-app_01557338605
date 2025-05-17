@@ -41,10 +41,9 @@ const EventView: React.FC = () => {
         );
     }
 
-    const displayedName = selectedTranslation?.name || event.name;
-    const displayedDescription =
-        selectedTranslation?.description || event.description;
-    const displayedVenue = selectedTranslation?.venue || event.venue;
+    // const displayedName = ;
+    // const displayedDescription =
+    // const displayedVenue = ;
 
     return (
         <main className="container mx-auto p-8">
@@ -65,7 +64,7 @@ const EventView: React.FC = () => {
             <div className="bg-white dark:bg-gray-800 rounded-lg shadow p-6 space-y-4">
                 <div className="flex flex-col md:flex-row md:items-center justify-between">
                     <h1 className="text-3xl font-bold text-gray-800 dark:text-gray-100">
-                        {displayedName}
+                        {selectedTranslation?.name || event.name}
                     </h1>
 
                     {event.translations && event.translations.length > 0 && (
@@ -102,7 +101,8 @@ const EventView: React.FC = () => {
                                         Description:
                                     </th>
                                     <td className="py-3 text-gray-700 dark:text-gray-300">
-                                        {displayedDescription}
+                                        {selectedTranslation?.description ||
+                                            event.description}
                                     </td>
                                 </tr>
                                 <tr className="border-b border-gray-300 dark:border-gray-600">
@@ -126,7 +126,8 @@ const EventView: React.FC = () => {
                                         Venue:
                                     </th>
                                     <td className="py-3 text-gray-700 dark:text-gray-300">
-                                        {displayedVenue}
+                                        {selectedTranslation?.venue ||
+                                            event.venue}
                                     </td>
                                 </tr>
                                 <tr>

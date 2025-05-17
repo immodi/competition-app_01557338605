@@ -24,6 +24,24 @@ const Login: React.FC = () => {
         return <div className="p-10 text-center text-lg">Unauthorized</div>;
     }
 
+    function handleLoginCallback(e: React.FormEvent<HTMLFormElement>) {
+        e.preventDefault();
+
+        console.log(username);
+        signInUser(username, password)
+            .then((res) => {
+                if (res.token) {
+                    authData.setToken(res.token);
+                    navigate("/");
+                    toast.success("Logged in successfully");
+                }
+            })
+            .catch((err) => {
+                toast.error(err.message);
+                console.warn(err);
+            });
+    }
+
     return (
         <div
             className={`${
@@ -32,21 +50,7 @@ const Login: React.FC = () => {
         >
             <form
                 action="#"
-                onSubmit={(e) => {
-                    e.preventDefault();
-                    signInUser(username, password)
-                        .then((res) => {
-                            if (res.token) {
-                                authData.setToken(res.token);
-                                navigate("/");
-                                toast.success("Logged in successfully");
-                            }
-                        })
-                        .catch((err) => {
-                            toast.error(err.message);
-                            console.warn(err);
-                        });
-                }}
+                onSubmit={handleLoginCallback}
                 className="w-full max-w-md bg-white dark:bg-gray-800 rounded-2xl shadow p-8 space-y-6"
             >
                 <h2 className="text-2xl font-bold text-gray-800 dark:text-gray-100 text-center">

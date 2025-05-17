@@ -2,6 +2,8 @@ import type { Event } from "./models/event";
 
 interface TableProps {
     events: Event[];
+    filterCategory: (category: string) => void;
+    refreshEvents: () => void;
 }
 
 interface EventFormProps {

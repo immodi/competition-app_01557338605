@@ -19,37 +19,38 @@ import (
 func EventsRouter(r chi.Router, db *sql.DB, api *helper_structs.API) {
 
 	r.Get("/", func(w http.ResponseWriter, r *http.Request) {
-		helpers.ProtectedHandler(w, r, nil, getAllEvents(api.EventRepo, r))
+		helpers.ProtectedHandler(w, r, nil, GetAllEvents(api.EventRepo, r))
 	})
 
 	r.Post("/", func(w http.ResponseWriter, r *http.Request) {
 		helpers.ProtectedHandler(w, r, func(username string) bool {
 			return api.UserRepo.IsAdmin(username)
-		}, createEvent(api.EventRepo))
+		}, CreateEvent(api.EventRepo))
 	})
 	r.Get("/{id}", func(w http.ResponseWriter, r *http.Request) {
-		helpers.ProtectedHandler(w, r, nil, getEvent(api.EventRepo))
+		helpers.ProtectedHandler(w, r, nil, GetEvent(api.EventRepo))
 	})
 
 	r.Get("/category/{category}", func(w http.ResponseWriter, r *http.Request) {
-		helpers.ProtectedHandler(w, r, nil, getEventsByCategory(api.EventRepo))
+		helpers.ProtectedHandler(w, r, nil, GetEventsByCategory(api.EventRepo, r))
 	})
 	r.Put("/{id}", func(w http.ResponseWriter, r *http.Request) {
 		helpers.ProtectedHandler(w, r, func(username string) bool {
 			return api.UserRepo.IsAdmin(username)
-		}, updateEvent(api.EventRepo))
+		}, UpdateEvent(api.EventRepo))
 	})
 	r.Delete("/{id}", func(w http.ResponseWriter, r *http.Request) {
 		helpers.ProtectedHandler(w, r, func(username string) bool {
 			return api.UserRepo.IsAdmin(username)
-		}, deleteEvent(api.EventRepo))
+		}, DeleteEvent(api.EventRepo))
 	})
 
-	r.Get("/upcoming", func(w http.ResponseWriter, r *http.Request) {
-		helpers.ProtectedHandler(w, r, nil, getUpcomingEvents(api.EventRepo))
-	})
+	// r.Get("/upcoming", func(w http.ResponseWriter, r *http.Request) {
+	// 	helpers.ProtectedHandler(w, r, nil, getUpcomingEvents(api.EventRepo))
+	// })
+
 	r.Get("/search/{keyword}", func(w http.ResponseWriter, r *http.Request) {
-		helpers.ProtectedHandler(w, r, nil, searchEvents(api.EventRepo))
+		helpers.ProtectedHandler(w, r, nil, SearchEvents(api.EventRepo, r))
 	})
 
 	r.Post("/assign/{id}", func(w http.ResponseWriter, r *http.Request) {
@@ -59,11 +60,11 @@ func EventsRouter(r chi.Router, db *sql.DB, api *helper_structs.API) {
 				return false
 			}
 			return api.UserRepo.IsSameUser(username, userId) || api.UserRepo.IsAdmin(username)
-		}, assignEvent(api.EventRepo, api.UserRepo))
+		}, AssignEvent(api.EventRepo, api.UserRepo))
 	})
 }
 
-func getAllEvents(eventRepository *repos.EventRepository, r *http.Request) http.HandlerFunc {
+func GetAllEvents(eventRepository repos.EventInterface, r *http.Request) http.HandlerFunc {
 	pageStr := r.URL.Query().Get("page")
 	limitStr := r.URL.Query().Get("limit")
 
@@ -103,7 +104,7 @@ func getAllEvents(eventRepository *repos.EventRepository, r *http.Request) http.
 	}
 }
 
-func createEvent(eventRepo *repos.EventRepository) http.HandlerFunc {
+func CreateEvent(eventRepo repos.EventInterface) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		var req requests.EventRequest
 		if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
@@ -136,7 +137,7 @@ func createEvent(eventRepo *repos.EventRepository) http.HandlerFunc {
 	}
 }
 
-func getEvent(eventRepo *repos.EventRepository) http.HandlerFunc {
+func GetEvent(eventRepo repos.EventInterface) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		idStr := chi.URLParam(r, "id")
 		eventId, err := strconv.ParseInt(idStr, 10, 64)
@@ -159,24 +160,54 @@ func getEvent(eventRepo *repos.EventRepository) http.HandlerFunc {
 	}
 }
 
-func getEventsByCategory(eventRepo *repos.EventRepository) http.HandlerFunc {
+func GetEventsByCategory(eventRepo repos.EventInterface, r *http.Request) http.HandlerFunc {
+	pageStr := r.URL.Query().Get("page")
+	limitStr := r.URL.Query().Get("limit")
+
+	page := 1
+	limit := 10
+
+	if p, err := strconv.Atoi(pageStr); err == nil && p > 0 {
+		page = p
+	}
+
+	if l, err := strconv.Atoi(limitStr); err == nil && l > 0 {
+		limit = l
+	}
+
 	return func(w http.ResponseWriter, r *http.Request) {
 		category := chi.URLParam(r, "category")
+		println(category)
 		events, err := eventRepo.GetEventsByCategory(category)
 		if err != nil {
 			helpers.HttpError(w, http.StatusInternalServerError, "this category has no events")
 			return
 		}
 
+		if len(events) < limit*(page-1) {
+			helpers.HttpError(w, http.StatusBadRequest, "requested page does not exist")
+			return
+		}
+
+		eventsCount := len(events)
+		startIndex := (page - 1) * limit
+		endIndex := min(page*limit, len(events))
+		events = events[startIndex:endIndex]
+
 		if len(events) == 0 || events == nil {
 			events = []repos.Event{}
 		}
 
-		helpers.HttpJson(w, http.StatusOK, events)
+		resp := &responses.EventsResponse{
+			Events: events,
+			Count:  eventsCount,
+		}
+
+		helpers.HttpJson(w, http.StatusOK, resp)
 	}
 }
 
-func updateEvent(eventRepo *repos.EventRepository) http.HandlerFunc {
+func UpdateEvent(eventRepo repos.EventInterface) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		idStr := chi.URLParam(r, "id")
 		eventId, err := strconv.ParseInt(idStr, 10, 64)
@@ -216,7 +247,7 @@ func updateEvent(eventRepo *repos.EventRepository) http.HandlerFunc {
 	}
 }
 
-func deleteEvent(eventRepo *repos.EventRepository) http.HandlerFunc {
+func DeleteEvent(eventRepo repos.EventInterface) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		idStr := chi.URLParam(r, "id")
 		eventId, err := strconv.ParseInt(idStr, 10, 64)
@@ -240,31 +271,66 @@ func deleteEvent(eventRepo *repos.EventRepository) http.HandlerFunc {
 	}
 }
 
-func getUpcomingEvents(eventRepo *repos.EventRepository) http.HandlerFunc {
-	return func(w http.ResponseWriter, r *http.Request) {
-		events, err := eventRepo.GetUpcomingEvents()
-		if err != nil {
-			helpers.HttpError(w, http.StatusInternalServerError, "wasn't able to get upcoming events, please try again later")
-			return
-		}
-		helpers.HttpJson(w, http.StatusOK, events)
-	}
-}
+// func getUpcomingEvents(eventRepo repos.EventInterface) http.HandlerFunc {
+// 	return func(w http.ResponseWriter, r *http.Request) {
+// 		events, err := eventRepo.GetUpcomingEvents()
+// 		if err != nil {
+// 			helpers.HttpError(w, http.StatusInternalServerError, "wasn't able to get upcoming events, please try again later")
+// 			return
+// 		}
+// 		helpers.HttpJson(w, http.StatusOK, events)
+// 	}
+// }
 
-func searchEvents(eventRepo *repos.EventRepository) http.HandlerFunc {
+func SearchEvents(eventRepo repos.EventInterface, r *http.Request) http.HandlerFunc {
+	pageStr := r.URL.Query().Get("page")
+	limitStr := r.URL.Query().Get("limit")
+
+	page := 1
+	limit := 10
+
+	if p, err := strconv.Atoi(pageStr); err == nil && p > 0 {
+		page = p
+	}
+
+	if l, err := strconv.Atoi(limitStr); err == nil && l > 0 {
+		limit = l
+	}
+
 	return func(w http.ResponseWriter, r *http.Request) {
-		keyword := r.URL.Query().Get("keyword")
+		keyword := chi.URLParam(r, "keyword")
 		events, err := eventRepo.SearchEvents(keyword)
+
 		if err != nil {
 			helpers.HttpError(w, http.StatusInternalServerError, "couldn't search events, please try again later")
 			return
 		}
-		helpers.HttpJson(w, http.StatusOK, events)
+
+		if len(events) < limit*(page-1) {
+			helpers.HttpError(w, http.StatusBadRequest, "requested page does not exist")
+			return
+		}
+
+		eventsCount := len(events)
+		startIndex := (page - 1) * limit
+		endIndex := min(page*limit, len(events))
+		events = events[startIndex:endIndex]
+
+		if len(events) == 0 || events == nil {
+			events = []repos.Event{}
+		}
+
+		resp := &responses.EventsResponse{
+			Events: events,
+			Count:  eventsCount,
+		}
+
+		helpers.HttpJson(w, http.StatusOK, resp)
 	}
 
 }
 
-func assignEvent(eventRepo *repos.EventRepository, userRepo *repos.UserRepository) http.HandlerFunc {
+func AssignEvent(eventRepo repos.EventInterface, userRepo *repos.UserRepository) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		idStr := chi.URLParam(r, "id")
 		eventId, err := strconv.ParseInt(idStr, 10, 64)

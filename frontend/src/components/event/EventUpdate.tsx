@@ -5,7 +5,7 @@ import { useAppContext } from "@/contexts/AppContext";
 import toast from "react-hot-toast";
 import useRequireAuth from "@/hooks/useRequireAuth";
 import EventForm from "./EventForm";
-import type { Event } from "@/interfaces/models/event";
+import type { CreateEventRequest, Event } from "@/interfaces/models/event";
 import { IoArrowBack } from "react-icons/io5";
 
 const EventUpdate: React.FC = () => {
@@ -30,15 +30,18 @@ const EventUpdate: React.FC = () => {
     if (!eventData)
         return <div className="p-10 text-center text-lg">Loading event...</div>;
 
-    const handleUpdate = async (data: any) => {
+    async function handleUpdateCallback(data: CreateEventRequest) {
         if (!authData.token) {
             toast.error("You must be logged in.");
             return;
         }
+
+        // console.log(data);
+
         await updateEvent(authData.token, Number(id), data);
         toast.success("Event updated!");
         navigate("/");
-    };
+    }
 
     return (
         <main className="container mx-auto p-8 max-w-4xl">
@@ -56,7 +59,7 @@ const EventUpdate: React.FC = () => {
             </div>
             <EventForm
                 initialData={eventData}
-                onSubmit={handleUpdate}
+                onSubmit={handleUpdateCallback}
                 submitLabel="Update Event"
             />
         </main>

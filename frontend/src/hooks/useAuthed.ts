@@ -3,15 +3,17 @@ import type { User } from "@/interfaces/models/user";
 import { getUserData } from "@/repo/user";
 import { useState, useEffect } from "react";
 
+const BLANK_USER: User = {
+    userId: 0,
+    username: "",
+    createdAt: new Date(),
+    tickets: 0,
+    role: "user",
+};
+
 function useAuthed(): AuthInterface {
     const [isAuthed, setIsAuthed] = useState(!!localStorage.getItem("token"));
-    const [userData, setUserData] = useState<User>({
-        userId: 0,
-        createdAt: new Date(),
-        role: "user",
-        tickets: 0,
-        username: "",
-    });
+    const [userData, setUserData] = useState<User>(BLANK_USER);
     const [token, setToken] = useState(
         () => localStorage.getItem("token") ?? ""
     );
@@ -29,6 +31,7 @@ function useAuthed(): AuthInterface {
 
     function logout() {
         setToken("");
+        setUserData(BLANK_USER);
     }
 
     function refreshUserData() {

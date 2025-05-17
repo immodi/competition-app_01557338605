@@ -1,15 +1,19 @@
 import { useAppContext } from "@/contexts/AppContext";
 import type { TableProps } from "@/interfaces/tableData";
-import { assignUserToEvent } from "@/repo/events";
+import { assignUserToEvent, deleteEvent } from "@/repo/events"; // ⬅️ added deleteEvent here
 import { getUserEventIds } from "@/repo/user";
 import { useEffect, useState } from "react";
 import type React from "react";
 import toast from "react-hot-toast";
-import { FaPencil, FaTicket } from "react-icons/fa6";
+import { FaPencil, FaTicket, FaTrash } from "react-icons/fa6"; // ⬅️ added FaTrash icon
 import { IoEyeSharp } from "react-icons/io5";
 import { useNavigate } from "react-router";
 
-const Table: React.FC<TableProps> = ({ events }) => {
+const Table: React.FC<TableProps> = ({
+    events,
+    filterCategory,
+    refreshEvents,
+}) => {
     const { authData } = useAppContext();
     const [userEventIds, setUserEventIds] = useState<number[]>([]);
     const navigate = useNavigate();
@@ -24,6 +28,22 @@ const Table: React.FC<TableProps> = ({ events }) => {
                 });
         }
     }, [authData.token, authData.userData.userId, authData.userData.tickets]);
+
+    function deleteEventCallback(eventId: number) {
+        if (window.confirm("Are you sure you want to delete this event?")) {
+            // console.log(eventId);
+
+            deleteEvent(authData.token, eventId)
+                .then(() => {
+                    toast.success("Event deleted successfully");
+                    refreshEvents();
+                })
+                .catch((error) => {
+                    console.error(error);
+                    toast.error(error.message);
+                });
+        }
+    }
 
     return (
         <div className="overflow-x-auto">
@@ -66,8 +86,15 @@ const Table: React.FC<TableProps> = ({ events }) => {
                             <td className="px-4 py-3 dark:text-gray-100">
                                 {event.description}
                             </td>
-                            <td className="px-4 py-3 dark:text-gray-100">
-                                {event.category}
+                            <td className="px-4 py-3">
+                                <button
+                                    onClick={() =>
+                                        filterCategory(event.category)
+                                    }
+                                    className="px-3 py-1 cursor-pointer rounded-full text-sm font-medium bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-200 hover:opacity-90 transition"
+                                >
+                                    {event.category}
+                                </button>
                             </td>
                             <td className="px-4 py-3 dark:text-gray-100">
                                 {new Date(event.date).toLocaleString()}
@@ -78,7 +105,7 @@ const Table: React.FC<TableProps> = ({ events }) => {
                             <td className="px-4 py-3 dark:text-gray-100">
                                 ${event.price}
                             </td>
-                            <td className="px-4 py-3 items-center ">
+                            <td className="px-4 py-3 items-center">
                                 <div className="flex justify-center gap-2">
                                     {!userEventIds.includes(event.id) ? (
                                         <button
@@ -91,7 +118,15 @@ const Table: React.FC<TableProps> = ({ events }) => {
                                                     .then(() => {
                                                         authData.refreshUserData();
                                                         toast.success(
-                                                            "event booked Successfully"
+                                                            "Event booked successfully"
+                                                        );
+                                                        navigate(
+                                                            "/booking-success",
+                                                            {
+                                                                state: {
+                                                                    name: event.name,
+                                                                },
+                                                            }
                                                         );
                                                     })
                                                     .catch((error) => {
@@ -101,7 +136,7 @@ const Table: React.FC<TableProps> = ({ events }) => {
                                                         );
                                                     });
                                             }}
-                                            title="book button"
+                                            title="Book"
                                             className="px-3 py-1 bg-blue-500 cursor-pointer text-white rounded hover:bg-blue-600 transition"
                                         >
                                             <FaTicket />
@@ -109,7 +144,7 @@ const Table: React.FC<TableProps> = ({ events }) => {
                                     ) : (
                                         <button
                                             disabled
-                                            title="booked"
+                                            title="Booked"
                                             className="px-3 py-1 bg-gray-200 text-gray-700 rounded hover:bg-gray-300 dark:bg-gray-600 dark:text-gray-100 dark:hover:bg-gray-500 transition"
                                         >
                                             <FaTicket />
@@ -119,23 +154,36 @@ const Table: React.FC<TableProps> = ({ events }) => {
                                         onClick={() =>
                                             navigate(`/event/${event.id}`)
                                         }
-                                        title="view details"
+                                        title="View Details"
                                         className="px-3 py-1 bg-blue-600 text-white cursor-pointer rounded hover:bg-blue-700 dark:bg-blue-500 dark:hover:bg-blue-600 transition"
                                     >
                                         <IoEyeSharp />
                                     </button>
                                     {authData.userData.role === "admin" && (
-                                        <button
-                                            onClick={() =>
-                                                navigate(
-                                                    `/event/edit/${event.id}`
-                                                )
-                                            }
-                                            title="edit event"
-                                            className="px-3 py-1 bg-green-600 text-white cursor-pointer rounded hover:bg-green-700 dark:bg-green-500 dark:hover:bg-green-600 transition"
-                                        >
-                                            <FaPencil />
-                                        </button>
+                                        <>
+                                            <button
+                                                onClick={() =>
+                                                    navigate(
+                                                        `/event/edit/${event.id}`
+                                                    )
+                                                }
+                                                title="Edit Event"
+                                                className="px-3 py-1 bg-green-600 text-white cursor-pointer rounded hover:bg-green-700 dark:bg-green-500 dark:hover:bg-green-600 transition"
+                                            >
+                                                <FaPencil />
+                                            </button>
+                                            <button
+                                                onClick={() =>
+                                                    deleteEventCallback(
+                                                        event.id
+                                                    )
+                                                }
+                                                title="Delete Event"
+                                                className="px-3 py-1 bg-red-600 text-white cursor-pointer rounded hover:bg-red-700 dark:bg-red-500 dark:hover:bg-red-600 transition"
+                                            >
+                                                <FaTrash />
+                                            </button>
+                                        </>
                                     )}
                                 </div>
                             </td>

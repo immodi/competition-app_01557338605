@@ -28,12 +28,26 @@ type EventRepository struct {
 	db *sql.DB
 }
 
+type EventInterface interface {
+	GetAllEvents() ([]Event, error)
+	GetEventById(id int64) (*Event, error)
+	CreateEvent(name, description, category, date, venue string, price float64, image []byte, eventTranslations []EventTranslation) (int64, error)
+	UpdateEvent(id int64, name, description, category, date, venue string, price float64, image []byte, eventTranslations []EventTranslation) error
+	GetEventsByCategory(category string) ([]Event, error)
+	GetUpcomingEvents() ([]Event, error)
+	GetEventsForUser(userID int64) ([]Event, error)
+	DeleteEvent(id int64) error
+	SearchEvents(query string) ([]Event, error)
+	GetEventTranslations(id int64) ([]EventTranslation, error)
+	RegisterUserToEvent(userID, eventID int64) error
+}
+
 func NewEventRepository(db *sql.DB) *EventRepository {
 	return &EventRepository{db: db}
 }
 
 func (r *EventRepository) GetAllEvents() ([]Event, error) {
-	rows, err := r.db.Query("SELECT id, name, description, category, date, venue, price, image FROM events")
+	rows, err := r.db.Query("SELECT id, name, description, category, date, venue, price FROM events")
 	if err != nil {
 		return nil, fmt.Errorf("failed to fetch events: %w", err)
 	}
@@ -42,7 +56,7 @@ func (r *EventRepository) GetAllEvents() ([]Event, error) {
 	events := []Event{}
 	for rows.Next() {
 		var e Event
-		if err := rows.Scan(&e.ID, &e.Name, &e.Description, &e.Category, &e.Date, &e.Venue, &e.Price, &e.Image); err != nil {
+		if err := rows.Scan(&e.ID, &e.Name, &e.Description, &e.Category, &e.Date, &e.Venue, &e.Price); err != nil {
 			return nil, fmt.Errorf("error scanning event row: %w", err)
 		}
 		events = append(events, e)
@@ -70,7 +84,7 @@ func (r *EventRepository) GetEventById(id int64) (*Event, error) {
 }
 
 func (r *EventRepository) GetEventsByCategory(category string) ([]Event, error) {
-	rows, err := r.db.Query("SELECT id, name, description, category, date, venue, price, image FROM events WHERE category = ?", category)
+	rows, err := r.db.Query("SELECT id, name, description, category, date, venue, price FROM events WHERE category = ?", category)
 	if err != nil {
 		return nil, fmt.Errorf("fetching events by category failed: %w", err)
 	}
@@ -79,7 +93,7 @@ func (r *EventRepository) GetEventsByCategory(category string) ([]Event, error) 
 	events := []Event{}
 	for rows.Next() {
 		var e Event
-		if err := rows.Scan(&e.ID, &e.Name, &e.Description, &e.Category, &e.Date, &e.Venue, &e.Price, &e.Image); err != nil {
+		if err := rows.Scan(&e.ID, &e.Name, &e.Description, &e.Category, &e.Date, &e.Venue, &e.Price); err != nil {
 			return nil, fmt.Errorf("error scanning event by category: %w", err)
 		}
 		events = append(events, e)
@@ -181,9 +195,9 @@ func (r *EventRepository) GetUpcomingEvents() ([]Event, error) {
 func (r *EventRepository) SearchEvents(keyword string) ([]Event, error) {
 	searchTerm := "%" + keyword + "%"
 	rows, err := r.db.Query(
-		`SELECT id, name, description, category, date, venue, price, image 
+		`SELECT id, name, description, category, date, venue, price 
 		 FROM events 
-		 WHERE name LIKE ? OR description LIKE ? OR venue LIKE ?`,
+		 WHERE name LIKE ?`,
 		searchTerm, searchTerm, searchTerm,
 	)
 	if err != nil {
@@ -194,7 +208,7 @@ func (r *EventRepository) SearchEvents(keyword string) ([]Event, error) {
 	events := []Event{}
 	for rows.Next() {
 		var e Event
-		if err := rows.Scan(&e.ID, &e.Name, &e.Description, &e.Category, &e.Date, &e.Venue, &e.Price, &e.Image); err != nil {
+		if err := rows.Scan(&e.ID, &e.Name, &e.Description, &e.Category, &e.Date, &e.Venue, &e.Price); err != nil {
 			return nil, fmt.Errorf("error scanning search result: %w", err)
 		}
 		events = append(events, e)

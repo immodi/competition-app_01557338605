@@ -14,11 +14,11 @@ import (
 )
 
 func AuthRouter(r chi.Router, db *sql.DB, api *helper_structs.API) {
-	r.Post("/login", login(api.AuthRepo))
-	r.Post("/register", register(api.UserRepo))
+	r.Post("/login", Login(api.AuthRepo))
+	r.Post("/register", Register(api.UserRepo))
 }
 
-func login(authRepo *repos.AuthRepository) http.HandlerFunc {
+func Login(authRepo repos.AuthInterface) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		var req requests.AuthRequest
 		if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
@@ -61,7 +61,7 @@ func login(authRepo *repos.AuthRepository) http.HandlerFunc {
 	}
 }
 
-func register(userRepo *repos.UserRepository) http.HandlerFunc {
+func Register(userRepo repos.UserInterface) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		var req requests.AuthRequest
 		if err := json.NewDecoder(r.Body).Decode(&req); err != nil {

@@ -17,6 +17,10 @@ type AuthRepository struct {
 	db *sql.DB
 }
 
+type AuthInterface interface {
+	GetAuthUserByUsername(username string) (*AuthUser, error)
+}
+
 func NewAuthRepository(db *sql.DB) *AuthRepository {
 	return &AuthRepository{db: db}
 }

@@ -5,6 +5,7 @@ import { createEvent } from "@/repo/events";
 import useRequireAuth from "@/hooks/useRequireAuth";
 import EventForm from "./EventForm";
 import { IoArrowBack } from "react-icons/io5";
+import type { CreateEventRequest } from "@/interfaces/models/event";
 
 const EventCreatePage: React.FC = () => {
     const { authData } = useAppContext();
@@ -14,15 +15,18 @@ const EventCreatePage: React.FC = () => {
     if (!isAuthed)
         return <div className="p-10 text-center text-lg">Unauthorized</div>;
 
-    const handleCreate = async (data: any) => {
+    async function handleCreateCallback(data: CreateEventRequest) {
         if (!authData.token) {
             toast.error("You must be logged in.");
             return;
         }
+
+        // console.log(data);
+
         await createEvent(authData.token, data);
         toast.success("Event created!");
         navigate("/");
-    };
+    }
 
     return (
         <main className="container mx-auto p-8 max-w-4xl">
@@ -38,7 +42,7 @@ const EventCreatePage: React.FC = () => {
                     Back
                 </button>
             </div>
-            <EventForm onSubmit={handleCreate} submitLabel="Create Event" />
+            <EventForm onSubmit={handleCreateCallback} submitLabel="Creatent" />
         </main>
     );
 };
