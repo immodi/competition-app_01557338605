@@ -4,12 +4,18 @@ import axios from "axios";
 
 const API_URL = import.meta.env.VITE_API_URL;
 
+function getAuthHeaders(token: string) {
+    return {
+        Authorization: `Bearer ${token}`,
+        "Content-Type": "application/json",
+        "ngrok-skip-browser-warning": "true",
+    };
+}
+
 async function getUserData(token: string): Promise<User> {
     try {
         const response = await axios.get<User>(`${API_URL}/users/data`, {
-            headers: {
-                Authorization: `Bearer ${token}`,
-            },
+            headers: getAuthHeaders(token),
         });
 
         return response.data;
@@ -28,15 +34,11 @@ async function getUserEventIds(
         const response = await axios.get<Event[]>(
             `${API_URL}/users/events/${userId}`,
             {
-                headers: {
-                    Authorization: `Bearer ${token}`,
-                    "Content-Type": "application/json",
-                },
+                headers: getAuthHeaders(token),
             }
         );
 
         const eventIds = response.data.map((event) => event.id);
-
         return eventIds;
     } catch (error: any) {
         throw new Error(

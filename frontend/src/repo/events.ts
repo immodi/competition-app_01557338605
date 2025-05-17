@@ -8,6 +8,14 @@ import axios from "axios";
 
 const API_URL = import.meta.env.VITE_API_URL;
 
+function getAuthHeaders(token: string) {
+    return {
+        Authorization: `Bearer ${token}`,
+        "Content-Type": "application/json",
+        "ngrok-skip-browser-warning": "true",
+    };
+}
+
 async function getEvents(
     token: string,
     page: number = 1,
@@ -15,16 +23,9 @@ async function getEvents(
 ): Promise<EventsResponse> {
     try {
         const response = await axios.get<EventsResponse>(`${API_URL}/events`, {
-            headers: {
-                Authorization: `Bearer ${token}`,
-                "Content-Type": "application/json",
-            },
-            params: {
-                page,
-                limit,
-            },
+            headers: getAuthHeaders(token),
+            params: { page, limit },
         });
-
         return response.data;
     } catch (error: any) {
         throw new Error(
@@ -44,13 +45,9 @@ async function assignUserToEvent(
             `${API_URL}/events/assign/${eventId}`,
             { userId },
             {
-                headers: {
-                    Authorization: `Bearer ${token}`,
-                    "Content-Type": "application/json",
-                },
+                headers: getAuthHeaders(token),
             }
         );
-
         return response.data;
     } catch (error: any) {
         throw new Error(
@@ -65,12 +62,9 @@ async function getEventById(token: string, eventId: number): Promise<Event> {
         const response = await axios.get<Event>(
             `${API_URL}/events/${eventId}`,
             {
-                headers: {
-                    Authorization: `Bearer ${token}`,
-                },
+                headers: getAuthHeaders(token),
             }
         );
-
         return response.data;
     } catch (error: any) {
         throw new Error(
@@ -89,13 +83,9 @@ async function createEvent(
             `${API_URL}/events`,
             eventData,
             {
-                headers: {
-                    Authorization: `Bearer ${token}`,
-                    "Content-Type": "application/json",
-                },
+                headers: getAuthHeaders(token),
             }
         );
-
         return response.data;
     } catch (error: any) {
         throw new Error(
@@ -115,13 +105,9 @@ async function updateEvent(
             `${API_URL}/events/${eventId}`,
             eventData,
             {
-                headers: {
-                    Authorization: `Bearer ${token}`,
-                    "Content-Type": "application/json",
-                },
+                headers: getAuthHeaders(token),
             }
         );
-
         return response.data;
     } catch (error: any) {
         throw new Error(
@@ -141,17 +127,10 @@ async function getEventsByCategory(
         const response = await axios.get<EventsResponse>(
             `${API_URL}/events/category/${category}`,
             {
-                headers: {
-                    Authorization: `Bearer ${token}`,
-                    "Content-Type": "application/json",
-                },
-                params: {
-                    page,
-                    limit,
-                },
+                headers: getAuthHeaders(token),
+                params: { page, limit },
             }
         );
-
         return response.data;
     } catch (error: any) {
         throw new Error(
@@ -171,17 +150,10 @@ async function searchEvents(
         const response = await axios.get<EventsResponse>(
             `${API_URL}/events/search/${query}`,
             {
-                headers: {
-                    Authorization: `Bearer ${token}`,
-                    "Content-Type": "application/json",
-                },
-                params: {
-                    page,
-                    limit,
-                },
+                headers: getAuthHeaders(token),
+                params: { page, limit },
             }
         );
-
         return response.data;
     } catch (error: any) {
         throw new Error(
@@ -194,10 +166,7 @@ async function searchEvents(
 async function deleteEvent(token: string, eventId: number): Promise<void> {
     try {
         await axios.delete(`${API_URL}/events/${eventId}`, {
-            headers: {
-                Authorization: `Bearer ${token}`,
-                "Content-Type": "application/json",
-            },
+            headers: getAuthHeaders(token),
         });
     } catch (error: any) {
         throw new Error(
