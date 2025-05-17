@@ -1,12 +1,14 @@
 package main
 
 import (
+	"log"
+	"net/http"
+	"os"
+
 	"immodi/submission-backend/db"
 	"immodi/submission-backend/repos"
 	"immodi/submission-backend/routes"
 	helper_structs "immodi/submission-backend/structs"
-	"log"
-	"net/http"
 
 	"github.com/go-chi/chi/v5"
 	"github.com/go-chi/chi/v5/middleware"
@@ -14,6 +16,11 @@ import (
 )
 
 func main() {
+	// Ensure /db directory exists
+	if err := os.MkdirAll("db", os.ModePerm); err != nil {
+		log.Fatalf("Failed to create db directory: %v", err)
+	}
+
 	// Connect to database
 	db, err := db.NewDatabase("file:db/api.db?cache=shared&mode=rwc")
 	if err != nil {
@@ -21,8 +28,8 @@ func main() {
 	}
 	defer db.Close()
 
-	err = godotenv.Load()
-	if err != nil {
+	// Load .env file
+	if err := godotenv.Load(); err != nil {
 		log.Fatal("Error loading .env file")
 	}
 
@@ -52,6 +59,8 @@ func main() {
 	r.NotFound(routes.NotFound)
 	r.MethodNotAllowed(routes.NotAllowed)
 
-	println("Listening on port http://localhost:8020/")
-	http.ListenAndServe(":8020", r)
+	log.Println("Listening on port http://localhost:8020/")
+	if err := http.ListenAndServe(":8020", r); err != nil {
+		log.Fatalf("HTTP server failed: %v", err)
+	}
 }
